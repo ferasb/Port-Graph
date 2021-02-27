@@ -1,10 +1,10 @@
 #include "Utilities.h"
 using namespace std;
 
-template<class P>
+template <class P>
 class Port {
     public:
-    Port(int portId, const P& attr = P()) : port_id(portId) {}
+    Port(int portId, P attr = P()) : port_id(portId) {}
 
     int getPortId()  { return port_id; }
 
@@ -17,31 +17,38 @@ class Port {
     P attribute;
 };
 
-template<class V, class P>
+template <class V, class P>
 class Vertex {
     public: 
-    Vertex(int vertex_id, int ports_num, V vertex_attr = V(), PortsAttributes ports_attr = PortsAttributes(ports_num))
+    Vertex(int vertex_id, int ports_num, V vertex_attr = V(), PortsAttributes ports_attr = PortsAttributes())
      : vertex_id(vertex_id), attribute(vertex_attr) {
         if (ports_attr.empty()) {
-            for (int i = 0; i < ports_num)
-                ports.insert(Port(i));
+            for (int i = 0; i < ports_num; i++)
+                ports.insert(Port<P>(i));
         }
         else {
-            for (int i = 0; i < ports_num)
-                ports.insert(Port(i), ports_attr[i]);
+            for (int i = 0; i < ports_num; i++)
+                ports.insert(Port<P>(i, ports_attr[i]));
         }
     }
     
-    void addPort(P attr = P())
-    {
-        ports.insert(Port(ports.size(), attr))
-    }
+    void addPort(P attr = P()) { ports.insert(Port<P>(ports.size(), attr)); }
 
     int vertexId() { return vertex_id; }
 
-    P getAttribute() { return attribute; }
+    V getAttribute() { return attribute; }
+
+    PortSet getPorts() { return ports; }
+
+    int getPortsNum() { return ports.size(); }
 
     bool operator==(Vertex v) { return v.vertex_id == vertex_id; }
+
+    void print() {
+        ostringstream s;
+        s << "Vertrex " << vertex_id << " with attribute " << attribute << ", with " << ports.size() << " ports." << endl;
+        fprintf(stderr, s.str().c_str());
+    }
 
     private:
     int vertex_id;
@@ -50,11 +57,11 @@ class Vertex {
 };
 
 
-template<class V, class P, class E>
+template <class V, class P, class E>
 class Edge {
     public:
-    Edge(const vport& src, const vport& dst, E attr = E()) 
-    : source(src), dest(dst), edge_id(src.fst.vertexId(), dst.fst.vertexId()), attribute(attr) {}
+    Edge(vport src, vport dst, E attr = E()) 
+    : source(src), dest(dst), edge_id(src.first.vertexId(), dst.first.vertexId()), attribute(attr) {}
 
     vport getSource() { return source; }
 
@@ -66,47 +73,75 @@ class Edge {
 
     E getAttribute() { return attribute; }
 
+    // void print() {
+    //     ostringstream s;
+    //     s << "Edge (" << id.first << ", " << id.second << ") " <<  " with attribute " << attribute << "." << endl;
+    //     fprintf(stderr, s.str().c_str());
+    // }
+
     private:
     vport source;
-    vport dest
+    vport dest;
     edge_id id;
     E attribute;
 };
 
-template<class V, class P, class E>
+template <class V = int, class P = int, class E = int>
 class PortGraph {
+    struct cmpVport {
+        bool operator()(const vport_id& a, const vport_id& b) const {
+            return a.first < b.first || (a.first == b.first && a.second < b.second);
+        }
+    };
+    struct cmpEdge {
+        bool operator()(const Edge<V, P, E>& a, const Edge<V, P, E>& b) const {
+            return a.getEdgeId().first.first < b.getEdgeId().first.first;
+        }
+    };
+    
     private:
 	// maps vport vp (vertix and port) to all the edges that has an vp as a source
-	map<vport_id, set<Edge>> adjacency_list;
+	map<vport_id, set<Edge<V, P, E>, cmpEdge>, cmpVport> adjacency_list;
     // maps vport_id (vertix and port) to its vport
-	map<vport_id, vport> vport_map;
+	map<vport_id, vport, cmpVport> vport_map;
 
 
     public:
-    // Build empty PortGraph
-    PortGraph();
-
     // Build PortGraph with 
-    PortGraph(int n_vertices, vector<int> ports_num, vector<pair<pair<int, int>, pair<int, int>>> edges_list)
+    PortGraph(int n_vertices, vector<int> ports_num, vector<edge_id> edges_list,
+    VerticesAttributes verticesAttributes =  VerticesAttributes(),
+    vector<PortsAttributes> portsAttributes = vector<PortsAttributes>(),
+    EdgesAttributes edgesAttributes = EdgesAttributes())
     {
-        for (i = 0; i < n_vertices; ++i) {
-            addVertix(i, ports_num[i]);
+        for (int i = 0; i < n_vertices; ++i) {
+            addVertix(i, ports_num[i], verticesAttributes[i], portsAttributes[i]);
         }
-        for (auto pr : edges_list) {
-            addEdge(pr);
-        }
-    }
-
-    addVertix(int vertex_id, int ports_num) {
-        Vertex v(vertex_id, ports_num);
-        for (i = 0; i < ports_num; ++i) {
-            adjacency_list[pair<int, int>(vertex_id, i)] = set();
-            vport_map[pair<int, int>(vertex_id, i)] = vport(v, Port(i));
+        for (int i = 0; i < n_vertices; ++i) {
+            addEdge(edges_list[i], edgesAttributes[i]);
         }
     }
 
-    addEdge(pair<vport_id, vport_id> p) {
-        adjacency_list[p.first].add(Edge(p));
+    void addVertix(int vertex_id, int ports_num, V attr = V(), PortsAttributes ports_attr = PortsAttributes())
+    {
+        Vertex<V, P> v(vertex_id, ports_num, attr, ports_attr);
+        for (int i = 0; i < ports_num; ++i) {
+            adjacency_list[pair<int, int>(vertex_id, i)] = set<Edge<E> >();
+            vport_map[pair<int, int>(vertex_id, i)] 
+            = vport(Vertex<V, P>(vertex_id, ports_num, attr, ports_attr), Port<P>(i, ports_attr[i]));
+        }
+    }
+
+    void addEdge(edge_id id, E attr = E()) 
+    {
+        adjacency_list[id.first].insert(Edge<V, P, E>(vport_map[id.first], vport_map[id.second], attr));
+    }
+
+    void Print() 
+    {
+        for (auto x : vport_map) {
+            Vertex<V, P>& v = x.second.first;
+            v.print();
+        }
     }
 
 
