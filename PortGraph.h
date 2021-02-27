@@ -1,30 +1,79 @@
-include <Pair>
+#include "Utilities.h"
+using namespace std;
 
+template<class P>
+class Port {
+    public:
+    Port(int portId, const P& attr = P()) : port_id(portId) {}
 
+    int getPortId()  { return port_id; }
 
+    P getAttribute()  { return attribute; }
 
+    bool operator==(Port p) { return p.port_id == port_id; }
+
+    private:
+    int port_id;
+    P attribute;
+};
+
+template<class V, class P>
 class Vertex {
-    Public: 
-    Vertex(int vertex_id, int ports_num) : vertex_id(vertex_id), ports_num(ports_num) {}
+    public: 
+    Vertex(int vertex_id, int ports_num, V vertex_attr = V(), PortsAttributes ports_attr = PortsAttributes(ports_num))
+     : vertex_id(vertex_id), attribute(vertex_attr) {
+        if (ports_attr.empty()) {
+            for (int i = 0; i < ports_num)
+                ports.insert(Port(i));
+        }
+        else {
+            for (int i = 0; i < ports_num)
+                ports.insert(Port(i), ports_attr[i]);
+        }
+    }
     
-    void addPort()
+    void addPort(P attr = P())
     {
-        ports_num++;
+        ports.insert(Port(ports.size(), attr))
     }
 
+    int vertexId() { return vertex_id; }
+
+    P getAttribute() { return attribute; }
+
+    bool operator==(Vertex v) { return v.vertex_id == vertex_id; }
+
+    private:
     int vertex_id;
-    int ports_num;
+    V attribute;
+    PortSet ports;
 };
 
-Typedef pair<Vertex, Port> vport;
-Typedef pair<int, int> vport_id;
 
-
+template<class V, class P, class E>
 class Edge {
-    pair<vport_id, vport_id> edge_id;
+    public:
+    Edge(const vport& src, const vport& dst, E attr = E()) 
+    : source(src), dest(dst), edge_id(src.fst.vertexId(), dst.fst.vertexId()), attribute(attr) {}
+
+    vport getSource() { return source; }
+
+    vport getDest() { return dest; }
+
+    edge_id getEdgeId() { return id; }
+
+    bool operator==(Edge e) { return e.id == id; }
+
+    E getAttribute() { return attribute; }
+
+    private:
+    vport source;
+    vport dest
+    edge_id id;
+    E attribute;
 };
 
-template<class T>
+template<class V, class P, class E>
 class PortGraph {
     private:
 	// maps vport vp (vertix and port) to all the edges that has an vp as a source
@@ -42,7 +91,7 @@ class PortGraph {
     {
         for (i = 0; i < n_vertices; ++i) {
             addVertix(i, ports_num[i]);
-        }        
+        }
         for (auto pr : edges_list) {
             addEdge(pr);
         }
