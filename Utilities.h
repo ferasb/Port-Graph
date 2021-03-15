@@ -1,3 +1,4 @@
+
 #include <utility>
 #include <set>
 #include <vector>
@@ -23,8 +24,7 @@ typedef pair<int, int> vport_id;
 
 typedef pair<vport_id, vport_id> edge_id;
 
-#define PortSet set<Port<P> >
-
 #define VerticesAttributes vector<V>
 #define PortsAttributes vector<P>
 #define EdgesAttributes vector<E>
+
