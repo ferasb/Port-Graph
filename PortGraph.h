@@ -428,7 +428,7 @@ public:
      *  transpose_graph -- Done
      *  min_spanning_tree -- Done
      *  is_reachable(vport source, vport dest) -- Done
-     *  {DFS | BFS} we should implement an {DFS | BFS} iterator -- PIW
+     *  {DFS | BFS} we should implement an {DFS | BFS} iterator -- DONE
 
     shortestpath(weight_function) --
     max_flow --
@@ -563,7 +563,7 @@ public:
     }
 
     BFSIterator operator++() {
-        if(not_visited.empty()){
+        if(queue.empty()){
             current = vport_id(END);
             return *this;
         }
@@ -584,6 +584,10 @@ public:
             return (*this);
         }
         else{// get new random 'not visited' vport
+            if(not_visited.empty()){
+                current = vport_id(END);
+                return *this;
+            }
             auto it = not_visited.begin();
             current = (*it).first;
             queue.push_back(current);
