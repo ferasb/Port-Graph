@@ -143,8 +143,10 @@ struct cmpEdge {
         return a.getEdgeId() < b.getEdgeId() ;
     }
 };
-template <class V = int, class P = int, class E = int>
 
+template <class V , class P , class E >
+class DFSIterator;
+template <class V = int, class P = int, class E = int>
 class PortGraph {
 private:
     // maps vport vp (vertix and port) to all the edges that has an vp as a source
@@ -158,9 +160,8 @@ private:
     // params for SCC
     const int UNSEEN = -1;
     const int SEEN = 1;
-
     // for Algo's in case of transpose
-    map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& getAdjacencyList(){
+    map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& AdjacencyList(){
         return is_transpose ? transpose_adjacency_list : adjacency_list ;
     }
 
@@ -218,7 +219,7 @@ public:
         // add edge
         adjacency_list[id.first].insert(Edge<V, P, E>(vport_map[id.first], vport_map[id.second], attr) );
         // add transpose Edge
-        transpose_adjacency_list[id.second].insert(Edge<V, P, E>(vport_map[id.second], vport_map[id.first], attr) );
+        transpose_adjacency_list[id.second].insert(Edge<V, P, E>(vport_map[id.second], vport_map[id.first], attr));
         ///  debug
         set<Edge<V, P, E>, cmpEdge<V,P,E>> setx = adjacency_list[id.first] ;
     }
@@ -240,175 +241,186 @@ public:
                 e.print();
     }
 
-// /********** Topological Sort **********/
+/********** Topological Sort **********/
 
-// // input: directed graph (g[u] contains the neighbors of u, nodes are named 0,1,...,|V|-1).
-// // output: is g a DAG (return value), a topological ordering of g (order).
-// // comment: order is valid only if g is a DAG.
-//     bool topological_sort(){
-//         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> adj_list = getAdjacencyList();
-//         // compute indegree of all nodes
-//         map<vport_id,int> vport_indegree = map<vport_id,int>();
-//         for(typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it) {
-//             set<Edge<V, P, E>> edge_set = (*it).second;
-//             vport_id id = (*it).first;
-//             for(auto edge : edge_set) {
-//                 vport_indegree[edge.getEdgeId().second]++ ;
-//             }
-//         }
+// input: directed graph (g[u] contains the neighbors of u, nodes are named 0,1,...,|V|-1).
+// output: is g a DAG (return value), a topological ordering of g (order).
+// comment: order is valid only if g is a DAG.
+    bool topological_sort(){
+        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> adj_list = AdjacencyList();
+        // compute indegree of all nodes
+        map<vport_id,int> vport_indegree = map<vport_id,int>();
+        for(typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it) {
+            set<Edge<V, P, E>> edge_set = (*it).second;
+            vport_id id = (*it).first;
+            for(auto edge : edge_set) {
+                vport_indegree[edge.getEdgeId().second]++ ;
+            }
+        }
 
-//         // order sources first
-//         vector<vport_id> vport_order = vector<vport_id>();
-//         for(typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it) {
-//             vport_id id = (*it).first;
-//             if (vport_indegree[id] == 0)
-//                 vport_order.push_back(id);
-//         }
-//         // go over the ordered nodes and remove outgoing edges,
-//         // add new sources to the ordering
-//         for(auto id : vport_order){
-//             for (auto edge : adj_list[id]) {
-//                 vport_id neighbor = edge.getEdgeId().second;
-//                 vport_indegree[neighbor] -- ;
-//                 if (vport_indegree[neighbor] == 0)
-//                     vport_order.push_back(neighbor);
-//             }
-//         }
-//         // check -
-//         return vport_order.size() == vport_map.size();
-//     }
+        // order sources first
+        vector<vport_id> vport_order = vector<vport_id>();
+        for(typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it) {
+            vport_id id = (*it).first;
+            if (vport_indegree[id] == 0)
+                vport_order.push_back(id);
+        }
+        // go over the ordered nodes and remove outgoing edges,
+        // add new sources to the ordering
+        for(auto id : vport_order){
+            for (auto edge : adj_list[id]) {
+                vport_id neighbor = edge.getEdgeId().second;
+                vport_indegree[neighbor] -- ;
+                if (vport_indegree[neighbor] == 0)
+                    vport_order.push_back(neighbor);
+            }
+        }
+        // check -
+        return vport_order.size() == vport_map.size();
+    }
 
-// /********** Strongly Connected Components **********/
+/********** Strongly Connected Components **********/
 
-//     void KosarajuDFS (const map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list ,vport_id id, map<vport_id,vport_id>& S, map<vport_id,int>& colorMap, int color){
+    void KosarajuDFS (const map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list ,vport_id id, map<vport_id,vport_id>& S, map<vport_id,int>& colorMap, int color){
 
-//         colorMap[id] = color;
-//         for(auto edge : adj_list[id]){
-//             vport_id neighbor = edge.getEdgeId().second;
-//             if(colorMap[neighbor] == UNSEEN)
-//                 KosarajuDFS(neighbor, S,colorMap,color);
-//         }
-//         S.insert({id,id});
-//     }
+        colorMap[id] = color;
+        for(auto edge : adj_list[id]){
+            vport_id neighbor = edge.getEdgeId().second;
+            if(colorMap[neighbor] == UNSEEN)
+                KosarajuDFS(neighbor, S,colorMap,color);
+        }
+        S.insert({id,id});
+    }
 
-// // Compute the number of SCCs and maps nodes to their corresponding SCCs.
-// // input: directed graph (g[u] contains the neighbors of u, nodes are named 0,1,...,|V|-1).
-// // output: the number of SCCs (return value), a mapping from node to SCC color (components).
-//     int findSCC(map<vport_id ,int>& components){
-//         // first pass: record the `post-order' of original graph
-//         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> adj_list = getAdjacencyList();
-//         map<vport_id ,vport_id> postOrder , dummy ;
-//         map<vport_id ,int>  seen ;
-//         for(typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it){
-//             vport_id id = (*it).first;
-//             seen[id] = UNSEEN;
-//             components[id] = UNSEEN;
-//         }
-//         for(typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it){
-//             vport_id id = (*it).first;
-//             if(seen[id] == UNSEEN)
-//                 KosarajuDFS(adj_list , id,postOrder,seen,SEEN);
-//         }
-//         // reverse iterator
-//         // second pass: explore the SCCs based on first pass result
-//         int numSCC = 0;
-//         for(typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::reverse_iterator rit = adj_list.rbegin(); rit != adj_list.rend(); ++rit){
-//             vport_id id = (*rit).first;
-//             transposeGraph();
-//             map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> rev_adj_list = getAdjacencyList();
-//             transposeGraph();
-//             if(components[postOrder[id]] == UNSEEN)
-//                 KosarajuDFS(rev_adj_list, postOrder[id], dummy, components, numSCC++);
-//         }
-//         return numSCC;
-//     }
+// Compute the number of SCCs and maps nodes to their corresponding SCCs.
+// input: directed graph (g[u] contains the neighbors of u, nodes are named 0,1,...,|V|-1).
+// output: the number of SCCs (return value), a mapping from node to SCC color (components).
+    int findSCC(map<vport_id ,int>& components){
+        // first pass: record the `post-order' of original graph
+        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> adj_list = AdjacencyList();
+        map<vport_id ,vport_id> postOrder , dummy ;
+        map<vport_id ,int>  seen ;
+        for(typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it){
+            vport_id id = (*it).first;
+            seen[id] = UNSEEN;
+            components[id] = UNSEEN;
+        }
+        for(typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it){
+            vport_id id = (*it).first;
+            if(seen[id] == UNSEEN)
+                KosarajuDFS(adj_list , id,postOrder,seen,SEEN);
+        }
+        // reverse iterator
+        // second pass: explore the SCCs based on first pass result
+        int numSCC = 0;
+        for(typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::reverse_iterator rit = adj_list.rbegin(); rit != adj_list.rend(); ++rit){
+            vport_id id = (*rit).first;
+            transposeGraph();
+            map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> rev_adj_list = AdjacencyList();
+            transposeGraph();
+            if(components[postOrder[id]] == UNSEEN)
+                KosarajuDFS(rev_adj_list, postOrder[id], dummy, components, numSCC++);
+        }
+        return numSCC;
+    }
 
-// // Computes the SCC graph of a given digraph.
-// // input: directed graph (g[u] contains the neighbors of u, nodes are named 0,1,...,|V|-1).
-// // output: strongly connected components graph of g (sccg).
-//     void findSCCgraph(vector<set<int>>& sccg){
-//         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> adj_list = getAdjacencyList();
-//         map<vport_id, int> component ;
-//         int n = findSCC(component);
-//     }
+// Computes the SCC graph of a given digraph.
+// input: directed graph (g[u] contains the neighbors of u, nodes are named 0,1,...,|V|-1).
+// output: strongly connected components graph of g (sccg).
+    void findSCCgraph(vector<set<int>>& sccg){
+        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> adj_list = AdjacencyList();
+        map<vport_id, int> component ;
+        int n = findSCC(component);
+    }
 
-// /********** Min Spanning Tree **********/
+/********** Min Spanning Tree **********/
 
-//     struct unionfindPG  {
-//         map<vport_id ,int> rank;
-//         map<vport_id ,vport_id >parent;
+    struct unionfindPG  {
+        map<vport_id ,int> rank;
+        map<vport_id ,vport_id >parent;
 
-//         explicit unionfindPG (map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list ) {
-//             for (typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it){
-//                 vport_id id = (*it).first;
-//                 rank[id] = 0;
-//                 parent[id] = 0;
-//             }
+        explicit unionfindPG (map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list ) {
+            for (typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it){
+                vport_id id = (*it).first;
+                rank[id] = 0;
+                parent[id] = 0;
+            }
 
-//         }
+        }
 
-//         vport_id find(vport_id x) {
-//             vport_id tmp = x;
-//             while(x!=parent[x]) x=parent[x];
-//             while(tmp!=x) {
-//                 vport_id remember=parent[tmp];
-//                 parent[tmp]=x;
-//                 tmp=remember;
-//             }
-//             return x;
-//         }
+        vport_id find(vport_id x) {
+            vport_id tmp = x;
+            while(x!=parent[x]) x=parent[x];
+            while(tmp!=x) {
+                vport_id remember=parent[tmp];
+                parent[tmp]=x;
+                tmp=remember;
+            }
+            return x;
+        }
 
-//         void unite(vport_id p, vport_id q) {
-//             p = find(p);
-//             q = find(q);
-//             if(q==p) return;
-//             if(rank[p] < rank[q]) parent[p] = q;
-//             else parent[q] = p;
-//             if(rank[p] == rank[q]) rank[p]++;
-//         }
-//     };
+        void unite(vport_id p, vport_id q) {
+            p = find(p);
+            q = find(q);
+            if(q==p) return;
+            if(rank[p] < rank[q]) parent[p] = q;
+            else parent[q] = p;
+            if(rank[p] == rank[q]) rank[p]++;
+        }
+    };
 
-// // input: edges v1->v2 of the form (weight,(v1,v2)),
-// //        number of nodes (n), all nodes are between 0 and n-1.
-// // output: weight of a minimum spanning tree.
-//     int Kruskal(int(*weightFunc)(const edge_id ,const E attr)){
-//         int n = getAdjacencyList().size();
-//         // (weight , edge_id)
-//         vector<pair<int,edge_id>> edges;
-//         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = getAdjacencyList();
-//         for (typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it){
-//             set<Edge<V, P, E>,cmpEdge<V,P,E>> s_edge = (*it).second;
-//             for(auto e : s_edge)
-//                 edges.push_back(weightFunc(e.getEdgeId(),e.getAttribute()) ,e.getEdgeId());
-//         }
-//         // with weightFunc
-//         sort(edges.begin(), edges.end());
-//         int mst_cost = 0;
-//         unionfindPG components(adj_list);
-//         for (pair<int,edge_id> e : edges) {
-//             if (components.find(e.second.first) != components.find(e.second.second)) {
-//                 // W function on edges
-//                 mst_cost += e.first;
-//                 components.unite(e.second.first, e.second.second);
-//             }
-//         }
-//         return mst_cost;
-//     }
+// input: edges v1->v2 of the form (weight,(v1,v2)),
+//        number of nodes (n), all nodes are between 0 and n-1.
+// output: weight of a minimum spanning tree.
+    int Kruskal(int(*weightFunc)(const edge_id ,const E attr)){
+        int n = AdjacencyList().size();
+        // (weight , edge_id)
+        vector<pair<int,edge_id>> edges;
+        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
+        for (typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it){
+            set<Edge<V, P, E>,cmpEdge<V,P,E>> s_edge = (*it).second;
+            for(auto e : s_edge)
+                edges.push_back(weightFunc(e.getEdgeId(),e.getAttribute()) ,e.getEdgeId());
+        }
+        // with weightFunc
+        sort(edges.begin(), edges.end());
+        int mst_cost = 0;
+        unionfindPG components(adj_list);
+        for (pair<int,edge_id> e : edges) {
+            if (components.find(e.second.first) != components.find(e.second.second)) {
+                // W function on edges
+                mst_cost += e.first;
+                components.unite(e.second.first, e.second.second);
+            }
+        }
+        return mst_cost;
+    }
 
-// /********** find Path **********/
+/********** find Path **********/
 
-// // input: vports src and dst of the form (Vertex,Port),
-// // output: true if there is a directed path form src to dst else false
-//     bool is_reachable(vport source, vport dest){
-//         return true;
-//     }
+// input: vports src and dst of the form (Vertex,Port),
+// output: true if there is a directed path form src to dst else false
+    bool is_reachable(vport source, vport dest){
+        return true;
+    }
 
-
-
-
-
-
-
+/********** BFS/DFS **********/
+    PGIterator end(){
+        return PGIterator(vport_id(-1,-1));
+    }
+    vector<vport_id> getVports(){
+        vector<vport_id> res;
+        for(typename map<vport_id, vport,cmpVport>::iterator it = vport_map.begin(); it != vport_map.end(); ++it) {
+            vport_id p = (*it).first;
+            res.push_back(p);
+        }
+        return res;
+    }
+    set<Edge<V,P,E>,cmpEdge<V,P,E>> getAdjList(vport_id id){
+        return AdjacencyList()[id];
+    }
+    // need to add - maybe
+    //getVportById()
 
     /* TODO:
      *  topological_sort -- DONE
@@ -416,7 +428,8 @@ public:
      *  transpose_graph -- Done
      *  min_spanning_tree -- Done
      *  is_reachable(vport source, vport dest) -- Done
-    {DFS | BFS} we should implement an {DFS | BFS} iterator .
+     *  {DFS | BFS} we should implement an {DFS | BFS} iterator -- PIW
+
     shortestpath(weight_function) --
     max_flow --
     min_cut() --
@@ -428,7 +441,174 @@ public:
     make_connected // maybe with min edges --
     is_bipartite() --
     is_reachable(port src, port src) --
-
     */
 };
+
+
+template <class V , class P , class E >
+class DFSIterator : public PGIterator {
+private:
+    vector<vport_id> path;
+    PortGraph<V,P,E>* pg;
+    map<vport_id,bool> visited;
+    map<vport_id,bool> not_visited;
+    DFSIterator(vector<vport_id> _path,PortGraph<V,P,E>* _pg,map<vport_id,bool>& _visited,map<vport_id,bool>& _not_visited,vport_id _current){
+        path = _path;
+        pg = _pg;
+        visited = _visited;
+        not_visited = _not_visited;
+        current = _current;
+    }
+public:
+
+    DFSIterator(vport_id id){
+        current = id;
+    }
+
+    DFSIterator(PortGraph<V,P,E>* _pg,vport_id src){
+        this->pg = _pg;
+        // if src not found in PG
+        path.push_back(src);
+        visited.insert(pair<vport_id,bool>(src,true));
+        current = src;
+        for(auto p : pg->getVports()) {
+            if(p != src)
+                not_visited.insert(pair<vport_id, bool>(p, true));
+        }
+    }
+
+    ~DFSIterator(){}
+
+    DFSIterator operator++() {
+        while(!not_visited.empty()){
+            vport_id current_src = current;
+            for(Edge<V,P,E> e : pg->getAdjList(current_src)){
+                vport_id dst = e.getEdgeId().second;
+                if(visited.find(dst) == visited.end()){
+                    assert(not_visited.find(dst) != not_visited.end());
+                    visited.insert(pair<vport_id,bool>(dst,true));
+                    not_visited.erase(dst);
+                    path.push_back(dst);
+                    current = dst;
+                    return (*this);
+                }
+            }
+            path.pop_back();
+            if(!path.empty())
+                current = path.back();
+            else{// get random new 'not visited' vport
+                auto it = not_visited.begin();
+                current = (*it).first;
+                path.push_back(current);
+                visited.insert(pair<vport_id,bool>(current,true));
+                not_visited.erase(current);
+                return (*this);
+            }
+        }
+        current = END;
+        return *this;
+    }
+
+    DFSIterator operator++(int) const {
+        DFSIterator old = DFSIterator(path,pg,visited,not_visited,current);
+        this->operator++();
+        return old;
+    }
+
+    vport_id operator*()const {
+        return current;
+    }
+
+//  vport_id const& operator*(){
+//        return *current;
+//    }
+
+    bool operator== (const PGIterator& that)const {return (this->current) == (*that) ;}
+    bool operator!= (const PGIterator& that)const {return !this->operator==(that);}
+};
+
+template <class V , class P , class E >
+class BFSIterator : public PGIterator{
+private:
+    vector<vport_id> queue;
+    PortGraph<V,P,E>* pg;
+    map<vport_id,bool> visited;
+    map<vport_id,bool> not_visited;
+    vport_id current;
+    BFSIterator(vector<vport_id> _queue,PortGraph<V,P,E>* _pg,map<vport_id,bool>& _visited,map<vport_id,bool>& _not_visited,vport_id _current){
+        queue = _queue;
+        pg = _pg;
+        visited = _visited;
+        not_visited = _not_visited;
+        current = _current;
+    }
+public:
+
+    BFSIterator(vport_id id){
+        current = id;
+    }
+
+    ~BFSIterator(){}
+
+    BFSIterator(PortGraph<V,P,E>* _pg,vport_id src){
+        this->pg = _pg;
+        // if src not found in PG
+        queue.push_back(src);
+        visited.insert(pair<vport_id,bool>(src,true));
+        current = src;
+        for(auto p : pg->getVports()) {
+            if(p != src)
+                not_visited.insert(pair<vport_id, bool>(p, true));
+        }
+    }
+
+    BFSIterator operator++() {
+        if(not_visited.empty()){
+            current = vport_id(END);
+            return *this;
+        }
+        vport_id current_src = queue.front();
+        queue.erase(queue.begin());
+        // add the next layer
+        for(Edge<V,P,E> e : pg->getAdjList(current_src)){
+            vport_id dst = e.getEdgeId().second;
+            if(visited.find(dst) == visited.end()){
+                assert(not_visited.find(dst) != not_visited.end());
+                visited.insert(pair<vport_id,bool>(dst,true));
+                not_visited.erase(dst);
+                queue.push_back(dst);
+            }
+        }
+        if(!queue.empty()) {
+            current = queue.front();
+            return (*this);
+        }
+        else{// get new random 'not visited' vport
+            auto it = not_visited.begin();
+            current = (*it).first;
+            queue.push_back(current);
+            visited.insert(pair<vport_id,bool>(current,true));
+            not_visited.erase(current);
+        }
+        return (*this);
+    }
+
+    BFSIterator operator++(int) const {
+        BFSIterator old = BFSIterator(queue,pg,visited,not_visited,current);
+        this->operator++();
+        return old;
+    }
+
+    vport_id operator*()const {
+        return current;
+    }
+
+//  vport_id const& operator*(){
+//        return *current;
+//    }
+
+    bool operator== (const PGIterator& that)const {return (this->current) == (*that) ;}
+    bool operator!= (const PGIterator& that)const {return !this->operator==(that);}
+};
+
 #endif //PROJECT1_PORTGRAPH_H
