@@ -92,7 +92,7 @@ void test3(){
     ostringstream s;
     s << "TEST 3" << endl;
     s << "testing TREE - int , int ,int" << endl ;
-    fprintf(stdout, s.str().c_str());
+    fprintf(stderr, s.str().c_str());
     vector<vport_id> ids;
     vector<int> ports_num;
     for(int i = 0; i < 12;i++){
@@ -113,8 +113,6 @@ void test3(){
 
     PortGraph<int, int, int> pg = PortGraph<int, int, int>(12, ports_num, edges_list);
     // ----
-    pg.Print();
-    pg.PrintEdges();
     // DFS TEST
     for(DFSIterator<int,int,int> it1(&pg,ids[0]);it1 != pg.end() ;++it1){
         vport_id curr = (*it1);
@@ -123,7 +121,7 @@ void test3(){
         fprintf(stderr,s1.str().c_str());
     }
     s<<endl;
-    fprintf(stdout,s.str().c_str());
+    fprintf(stderr,s.str().c_str());
     //---BFS Test
     for(BFSIterator<int,int,int> it2(&pg,ids[0]);it2 != pg.end() ;++it2){
         vport_id curr = (*it2);
@@ -133,10 +131,76 @@ void test3(){
     }
 }
 
+// MST Test
+// Link to graph : http://graphonline.ru/en/?graph=uLcpFMUCtmmKCgGl
+double w(const edge_id id, const double e){
+    return e;
+}
+void test4(){
+    ostringstream s;
+    s << "TEST 4" << endl;
+    s << "testing MST - int , int ,int" << endl ;
+    fprintf(stderr, s.str().c_str());
+    vector<vport_id> ids;
+    vector<int> ports_num;
+    for(int i = 0; i < 12;i++){
+        ids.push_back(vport_id(i,0));
+        ports_num.push_back(1);
+    }
+    vector<edge_id> edges_list({edge_id(ids[0], ids[2]),
+                                edge_id(ids[0], ids[4]),
+                                edge_id(ids[0], ids[3]),
+                                edge_id(ids[2], ids[5]),
+                                edge_id(ids[2], ids[1]),
+                                edge_id(ids[4], ids[7]),
+                                edge_id(ids[4], ids[11]),
+                                edge_id(ids[1], ids[9]),
+                                edge_id(ids[1], ids[10]),
+                                edge_id(ids[7], ids[10]),
+                                edge_id(ids[9], ids[6]),
+                                edge_id(ids[10], ids[6]),
+                                edge_id(ids[11], ids[8])});
+
+    vector<double> edgeAttr({0,0,0,5,1.5,1.5,1,2,1,0.5,1,1,2.5,0});
+    PortGraph<int, int, double> pg = PortGraph<int, int, double >(12, ports_num, edges_list,vector<int>(),vector<vector<int>>(),edgeAttr);
+    // ----
+    // DFS TEST
+    //pg.PrintEdges();
+    for(DFSIterator<int,int,double > it1(&pg,ids[0]);it1 != pg.end() ;++it1){
+        vport_id curr = (*it1);
+        ostringstream s1;
+        s1<< curr.first << " " << curr.second<< endl;
+        fprintf(stderr,s1.str().c_str());
+    }
+    s<<endl;
+    fprintf(stderr,s.str().c_str());
+    //---BFS Test
+    for(BFSIterator<int,int,double> it2(&pg,ids[0]);it2 != pg.end() ;++it2){
+        vport_id curr = (*it2);
+        ostringstream s2;
+        s2<< curr.first << " " << curr.second<< endl;
+        fprintf(stderr,s2.str().c_str());
+    }
+    //---MST Test
+    assert(pg.Kruskal(w) == 13.5);
+    //--- isBipartite Test
+    assert(pg.isBipartite(ids[0])==true);
+    
+    //---
+    //ADD edge mst=12 ,not 2 colored
+    pg.addEdge(edge_id(ids[6], ids[0]),0);
+    assert(pg.Kruskal(w) == 12);
+    //--- isBipartite Test
+    assert(pg.isBipartite(ids[0])==false);
+}
+
 int main()
 {
     //test1();
     //test2();
-    test3();
+    //test3();
+    //test4();
+
     return 0;
+
 }

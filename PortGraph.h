@@ -1,7 +1,3 @@
-//
-// Created by mario barbara on 08/03/2021.
-//
-
 #ifndef PROJECT1_PORTGRAPH_H
 #define PROJECT1_PORTGRAPH_H
 #include "Utilities.h"
@@ -146,6 +142,10 @@ struct cmpEdge {
 
 template <class V , class P , class E >
 class DFSIterator;
+
+template <class V , class P , class E >
+class BFSIterator;
+
 template <class V = int, class P = int, class E = int>
 class PortGraph {
 private:
@@ -343,7 +343,7 @@ public:
             for (typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it){
                 vport_id id = (*it).first;
                 rank[id] = 0;
-                parent[id] = 0;
+                parent[id] = id;
             }
 
         }
@@ -372,21 +372,21 @@ public:
 // input: edges v1->v2 of the form (weight,(v1,v2)),
 //        number of nodes (n), all nodes are between 0 and n-1.
 // output: weight of a minimum spanning tree.
-    int Kruskal(int(*weightFunc)(const edge_id ,const E attr)){
+    double Kruskal(double(*weightFunc)(const edge_id ,const E attr)){
         int n = AdjacencyList().size();
         // (weight , edge_id)
-        vector<pair<int,edge_id>> edges;
+        vector<pair<double,edge_id>> edges;
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
         for (typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it){
             set<Edge<V, P, E>,cmpEdge<V,P,E>> s_edge = (*it).second;
             for(auto e : s_edge)
-                edges.push_back(weightFunc(e.getEdgeId(),e.getAttribute()) ,e.getEdgeId());
+                edges.push_back(pair<double,edge_id>(weightFunc(e.getEdgeId(),e.getAttribute()) ,e.getEdgeId()));
         }
         // with weightFunc
         sort(edges.begin(), edges.end());
-        int mst_cost = 0;
+        double mst_cost = 0;
         unionfindPG components(adj_list);
-        for (pair<int,edge_id> e : edges) {
+        for (pair<double,edge_id> e : edges) {
             if (components.find(e.second.first) != components.find(e.second.second)) {
                 // W function on edges
                 mst_cost += e.first;
@@ -396,18 +396,11 @@ public:
         return mst_cost;
     }
 
-/********** find Path **********/
-
-// input: vports src and dst of the form (Vertex,Port),
-// output: true if there is a directed path form src to dst else false
-    bool is_reachable(vport source, vport dest){
-        return true;
-    }
-
 /********** BFS/DFS **********/
     PGIterator end(){
         return PGIterator(vport_id(-1,-1));
     }
+
     vector<vport_id> getVports(){
         vector<vport_id> res;
         for(typename map<vport_id, vport,cmpVport>::iterator it = vport_map.begin(); it != vport_map.end(); ++it) {
@@ -416,11 +409,65 @@ public:
         }
         return res;
     }
+
     set<Edge<V,P,E>,cmpEdge<V,P,E>> getAdjList(vport_id id){
         return AdjacencyList()[id];
     }
-    // need to add - maybe
-    //getVportById()
+
+/********** Bipartite **********/
+// This function returns true if graph is Bipartite, else false
+    bool isNeighbers(const vport_id& src, const vport_id& dst){
+        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
+        for(const Edge<V,P,E>& e : adj_list[src]){
+            if(e.getEdgeId().second == dst)
+                return true;
+        }
+        return false;
+    }
+
+    bool isBipartite(vport_id src){
+        // if src not in graph ...
+        map<vport_id,int> colorArr;
+        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
+        for (typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it) {
+            colorArr.insert(pair<vport_id, int>((*it).first,-1));
+        }
+        // Assign first color to source
+        colorArr[src] = 1;
+        // Create a queue (FIFO) of vertex
+        // numbers and enqueue source vertex
+        // for BFS traversal
+        vector<vport_id> queue;
+        queue.push_back(src);
+        // Run while there are vertices
+        // in queue (Similar to BFS)
+        while(! queue.empty()){
+            // Dequeue a vertex from queue
+            vport_id u = queue.front();
+            queue.erase(queue.begin());
+            // Return false if there is a self-loop
+            if(isNeighbers(u,u))
+                return false;
+            // Find all non-colored adjacent vertices
+            for (typename map<vport_id, vport, cmpVport>::iterator it = vport_map.begin(); it != vport_map.end(); ++it){
+                vport_id v = (*it).first;
+                // An edge from u to v exists and
+                // destination v is not colored
+                if(isNeighbers(u,v) && colorArr[v] == -1 ){
+                    // Assign alternate color to this adjacent v of u
+                    colorArr[v] = 1- colorArr[u];
+                    queue.push_back(v);
+                }
+                    // An edge from u to v exists and destination
+                    // v is colored with same color as u
+                else if(isNeighbers(u,v) && colorArr[v] == colorArr[u])
+                    return false;
+            }
+        }
+        // If we reach here, then all adjacent
+        // vertices can be colored with alternate color
+        return true;
+    }
 
     /* TODO:
      *  topological_sort -- DONE
@@ -429,6 +476,7 @@ public:
      *  min_spanning_tree -- Done
      *  is_reachable(vport source, vport dest) -- Done
      *  {DFS | BFS} we should implement an {DFS | BFS} iterator -- DONE
+     *  is_bipartite() -- DONE
 
     shortestpath(weight_function) --
     max_flow --
@@ -439,8 +487,6 @@ public:
     netlistToPortGraph // maybe constructor --
     findPathCost(vport, vport, cost_function) --
     make_connected // maybe with min edges --
-    is_bipartite() --
-    is_reachable(port src, port src) --
     */
 };
 
@@ -485,7 +531,7 @@ public:
             for(Edge<V,P,E> e : pg->getAdjList(current_src)){
                 vport_id dst = e.getEdgeId().second;
                 if(visited.find(dst) == visited.end()){
-                    assert(not_visited.find(dst) != not_visited.end());
+                    //assert(not_visited.find(dst) != not_visited.end());
                     visited.insert(pair<vport_id,bool>(dst,true));
                     not_visited.erase(dst);
                     path.push_back(dst);
