@@ -1,3 +1,7 @@
+//
+// Created by mario barbara on 08/03/2021.
+//
+
 #ifndef PROJECT1_PORTGRAPH_H
 #define PROJECT1_PORTGRAPH_H
 #include "Utilities.h"
@@ -372,7 +376,7 @@ public:
 // input: edges v1->v2 of the form (weight,(v1,v2)),
 //        number of nodes (n), all nodes are between 0 and n-1.
 // output: weight of a minimum spanning tree.
-    double Kruskal(double(*weightFunc)(const edge_id ,const E attr)){
+    double Kruskal(double(*weightFunc)(const edge_id ,const E attr),bool(*pred)(const edge_id)){
         int n = AdjacencyList().size();
         // (weight , edge_id)
         vector<pair<double,edge_id>> edges;
@@ -474,20 +478,27 @@ public:
      *  strongly_connected_components -- DONE
      *  transpose_graph -- Done
      *  min_spanning_tree -- Done
-     *  is_reachable(vport source, vport dest) -- Done
      *  {DFS | BFS} we should implement an {DFS | BFS} iterator -- DONE
      *  is_bipartite() -- DONE
 
+     FERAS
     shortestpath(weight_function) --
+    findPathCost(vport, vport, cost_function) --
+    is_reachable(vport source, vport dest) --
+    is_reachable(vertex source, vertex dest) --
     max_flow --
     min_cut() --
-    colouring --
+
+     MARIO
     induced_graph(vports/vertices/edges) // or filter --
     is_subgraph(subgraph) --
     netlistToPortGraph // maybe constructor --
-    findPathCost(vport, vport, cost_function) --
+
+     4 later
+    colouring --
     make_connected // maybe with min edges --
     */
+
 };
 
 
