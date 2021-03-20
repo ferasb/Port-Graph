@@ -1,21 +1,16 @@
-//
-// Created by mario barbara on 08/03/2021.
-//
-
 #ifndef PROJECT1_PORTGRAPH_H
 #define PROJECT1_PORTGRAPH_H
 #include "Utilities.h"
 using namespace std;
 
 template <class P>
-#define PortSet set<Port<P>, cmpPort<P>>
-struct cmpPort{
-    bool operator () (const Port<P>& a,const Port<P>& b){
-        return a.getPortId() < b.getPortId() ;
-    }
-};
+#define PortMap map<int,Port<P>>
+//struct cmpPort{
+//    bool operator () (const Port<P>& a,const Port<P>& b){
+//        return a.getPortId() < b.getPortId() ;
+//    }
+//};
 
-template <class P>
 class Port{
 public:
 
@@ -31,6 +26,10 @@ public:
         return this->port_id < p.getPortId();
     }
 
+    void setAttribute(P& attr){
+        attribute = attr;
+    }
+
     void print(){
         ostringstream s;
         s << "Port " << port_id << " with attribute " << attribute << endl;
@@ -43,6 +42,13 @@ private:
     P attribute;
 };
 
+//template <class V, class P>
+//    struct cmpVertex{
+//        bool operator () (const int& a,const int& b) const{
+//            return a < b ;
+//        }
+//    };
+
 template <class V, class P>
 class Vertex {
 public:
@@ -51,21 +57,20 @@ public:
             : vertex_id(vertex_id), attribute(vertex_attr) {
         if (ports_attr.empty()) {
             for (int i = 0; i < ports_num; i++)
-                ports.insert(Port<P>(i));
+                ports.insert(pair<int,Port<P>>(i,Port<P>(i)));
         }
         else {
             for (int i = 0; i < ports_num; i++)
-                ports.insert(Port<P>(i, ports_attr[i]));
+                ports.insert(pair<int,Port<P>>(i, Port<P>(i,ports_attr[i])));
         }
     }
 
-    void addPort(P attr = P()) { ports.insert(Port<P>(ports.size(), attr)); }
 
     int vertexId() { return vertex_id; }
 
     V getAttribute() { return attribute; }
 
-    PortSet getPorts() { return ports; }
+    PortMap getPorts() { return ports; }
 
     int getPortsNum() { return ports.size(); }
 
@@ -75,26 +80,42 @@ public:
         return  v.vertexId() > vertex_id;
     }
 
-//    Vertex<V,P>& operator=(Vertex<V,P> const &a){
-//        this->vertex_id = a.vertexId();
-//        this->attribute = a.getAttribute();
-//        this->ports = a.getPorts();
+    Port<P>& getPort(const int port_id){
+        //check -
+        return ports[port_id];
+    }
 
-//    }
+    void setVertexId(vport_id id){
+        vertex_id = id;
+    }
+
+    void setAttribute(V& attr){
+        attribute = attr;
+    }
+
+    void setPortAttr(int port_id,P& attr){
+        ports[port_id].serAttribute(attr);
+    }
 
     void print() {
         ostringstream s;
         s << "Vertrex " << vertex_id << " with attribute " << attribute << ", with " << ports.size() << " ports." << endl;
-        s << "Vertrex " << vertex_id << " with Ports attribute : " << endl ;
+        s << "Vertrex " << vertex_id << " with Ports  : " << endl ;
         fprintf(stderr, s.str().c_str());
         for (auto p : ports)
-            p.print();
+            p.second.print();
     }
+
+//    Vertex<V,P>& operator=(Vertex<V,P> const &a){
+//        this->vertex_id = a.vertexId();
+//        this->attribute = a.getAttribute();
+//        this->ports = a.getPorts();
+//   }
 
 private:
     int vertex_id;
     V attribute;
-    PortSet ports;
+    PortMap ports;
 };
 
 template <class V, class P, class E>
@@ -111,7 +132,7 @@ public:
 
     vport getDest() { return dest; }
 
-    edge_id getEdgeId() const { return id; }
+    edge_id EdgeId() const { return id; }
 
     bool operator==(Edge e) { return e.id == id; }
 
@@ -136,11 +157,12 @@ struct cmpVport {
         return (a.first < b.first) || (a.first == b.first && a.second < b.second);
     }
 };
+
 template <class V = int, class P = int, class E = int>
 struct cmpEdge {
     // check-
     bool operator()(const Edge<V, P, E>& a,const Edge<V, P, E>& b) const {
-        return a.getEdgeId() < b.getEdgeId() ;
+        return a.EdgeId() < b.EdgeId() ;
     }
 };
 
@@ -160,7 +182,9 @@ private:
     // flag for the transpose Graph
     bool is_transpose ;
     // maps vport_id (vertix and port) to its vport
-    map<vport_id, vport, cmpVport> vport_map;
+    // vertex id -> vertex
+    // vmap por_id -> attr
+    map<int, Vertex<V,P>> vport_map;
     // params for SCC
     const int UNSEEN = -1;
     const int SEEN = 1;
@@ -171,6 +195,8 @@ private:
 
 public:
     // Build PortGraph with
+    PortGraph() = default;
+
     PortGraph(int n_vertices, vector<int> ports_num, vector<edge_id> edges_list,
               VerticesAttributes verticesAttributes =  VerticesAttributes(),
               vector<PortsAttributes> portsAttributes = vector<PortsAttributes>(),
@@ -202,6 +228,7 @@ public:
     void transposeGraph(){
         is_transpose = !is_transpose;
     }
+
     void addVertix(int vertex_id, int ports_num, V attr = V(), PortsAttributes ports_attr = PortsAttributes())
     {
         for (int i = 0; i < ports_num; ++i) {
@@ -209,38 +236,34 @@ public:
             // transpose Graph
             transpose_adjacency_list[vport_id(vertex_id, i)] = set<Edge<V, P, E>, cmpEdge<V,P,E>>();
             P portAttr =  ports_attr.empty() ? P() : ports_attr[i] ;
-            vport_map[vport_id(vertex_id, i)]
-                    = vport(Vertex<V, P>(vertex_id, ports_num, attr, ports_attr), Port<P>(i,portAttr));
         }
+        vport_map[vertex_id] = Vertex<V, P>(vertex_id, ports_num, attr, ports_attr);
     }
 
     void addEdge(edge_id id, E attr = E())
     {
-        /// debug
-        Edge<V, P, E> e(Edge<V, P, E>(vport_map[id.first], vport_map[id.second], attr)) ;
-        set<Edge<V, P, E>, cmpEdge<V,P,E>> sety = adjacency_list[id.first] ;
-        sety.insert(Edge<V, P, E>(vport_map[id.first], vport_map[id.second], attr)) ;
         // add edge
-        adjacency_list[id.first].insert(Edge<V, P, E>(vport_map[id.first], vport_map[id.second], attr) );
+        Vertex<V,P>& v1 = vport_map[id.first.first];
+        Vertex<V,P>& v2 = vport_map[id.second.first];
+        vport vp1 = vport(v1,v1.getPort(id.first.second));
+        vport vp2 = vport(v2,v2.getPort(id.second.second));
+        adjacency_list[id.first].insert(Edge<V, P, E>(vp1, vp2, attr) );
         // add transpose Edge
-        transpose_adjacency_list[id.second].insert(Edge<V, P, E>(vport_map[id.second], vport_map[id.first], attr));
-        ///  debug
-        set<Edge<V, P, E>, cmpEdge<V,P,E>> setx = adjacency_list[id.first] ;
+        transpose_adjacency_list[id.second].insert(Edge<V, P, E>(vp2, vp1, attr));
     }
 
     //Print the vertcies and ports per vertex
     void Print()
     {
         for (auto x : vport_map) {
-            Vertex<V, P>& v = x.second.first;
-            v.print();
+            x.second.print();
         }
     }
 
     //Print the edges
     void PrintEdges() {
 
-        for (typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adjacency_list.begin(); it != adjacency_list.end(); ++it)
+        for (auto it = adjacency_list.begin(); it != adjacency_list.end(); ++it)
             for(auto e : (*it).second)
                 e.print();
     }
@@ -254,17 +277,17 @@ public:
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> adj_list = AdjacencyList();
         // compute indegree of all nodes
         map<vport_id,int> vport_indegree = map<vport_id,int>();
-        for(typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it) {
+        for(auto it = adj_list.begin(); it != adj_list.end(); ++it) {
             set<Edge<V, P, E>> edge_set = (*it).second;
             vport_id id = (*it).first;
             for(auto edge : edge_set) {
-                vport_indegree[edge.getEdgeId().second]++ ;
+                vport_indegree[edge.EdgeId().second]++ ;
             }
         }
 
         // order sources first
         vector<vport_id> vport_order = vector<vport_id>();
-        for(typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it) {
+        for(auto it = adj_list.begin(); it != adj_list.end(); ++it) {
             vport_id id = (*it).first;
             if (vport_indegree[id] == 0)
                 vport_order.push_back(id);
@@ -273,14 +296,14 @@ public:
         // add new sources to the ordering
         for(auto id : vport_order){
             for (auto edge : adj_list[id]) {
-                vport_id neighbor = edge.getEdgeId().second;
+                vport_id neighbor = edge.EdgeId().second;
                 vport_indegree[neighbor] -- ;
                 if (vport_indegree[neighbor] == 0)
                     vport_order.push_back(neighbor);
             }
         }
         // check -
-        return vport_order.size() == vport_map.size();
+        return vport_order.size() == adj_list.size();
     }
 
 /********** Strongly Connected Components **********/
@@ -289,7 +312,7 @@ public:
 
         colorMap[id] = color;
         for(auto edge : adj_list[id]){
-            vport_id neighbor = edge.getEdgeId().second;
+            vport_id neighbor = edge.EdgeId().second;
             if(colorMap[neighbor] == UNSEEN)
                 KosarajuDFS(neighbor, S,colorMap,color);
         }
@@ -304,12 +327,12 @@ public:
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> adj_list = AdjacencyList();
         map<vport_id ,vport_id> postOrder , dummy ;
         map<vport_id ,int>  seen ;
-        for(typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it){
+        for(auto it = adj_list.begin(); it != adj_list.end(); ++it){
             vport_id id = (*it).first;
             seen[id] = UNSEEN;
             components[id] = UNSEEN;
         }
-        for(typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it){
+        for(auto it = adj_list.begin(); it != adj_list.end(); ++it){
             vport_id id = (*it).first;
             if(seen[id] == UNSEEN)
                 KosarajuDFS(adj_list , id,postOrder,seen,SEEN);
@@ -317,7 +340,7 @@ public:
         // reverse iterator
         // second pass: explore the SCCs based on first pass result
         int numSCC = 0;
-        for(typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::reverse_iterator rit = adj_list.rbegin(); rit != adj_list.rend(); ++rit){
+        for(auto rit = adj_list.rbegin(); rit != adj_list.rend(); ++rit){
             vport_id id = (*rit).first;
             transposeGraph();
             map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> rev_adj_list = AdjacencyList();
@@ -344,7 +367,7 @@ public:
         map<vport_id ,vport_id >parent;
 
         explicit unionfindPG (map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list ) {
-            for (typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it){
+            for (auto it = adj_list.begin(); it != adj_list.end(); ++it){
                 vport_id id = (*it).first;
                 rank[id] = 0;
                 parent[id] = id;
@@ -376,21 +399,21 @@ public:
 // input: edges v1->v2 of the form (weight,(v1,v2)),
 //        number of nodes (n), all nodes are between 0 and n-1.
 // output: weight of a minimum spanning tree.
-    double Kruskal(double(*weightFunc)(const edge_id ,const E attr),bool(*pred)(const edge_id)){
+    double Kruskal(double(*weightFunc)(const edge_id ,const E attr)){
         int n = AdjacencyList().size();
         // (weight , edge_id)
         vector<pair<double,edge_id>> edges;
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
-        for (typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it){
+        for (auto it = adj_list.begin(); it != adj_list.end(); ++it){
             set<Edge<V, P, E>,cmpEdge<V,P,E>> s_edge = (*it).second;
             for(auto e : s_edge)
-                edges.push_back(pair<double,edge_id>(weightFunc(e.getEdgeId(),e.getAttribute()) ,e.getEdgeId()));
+                edges.push_back(pair<double,edge_id>(weightFunc(e.EdgeId(),e.getAttribute()) ,e.EdgeId()));
         }
         // with weightFunc
         sort(edges.begin(), edges.end());
         double mst_cost = 0;
         unionfindPG components(adj_list);
-        for (pair<double,edge_id> e : edges) {
+        for (pair<double,edge_id>& e : edges) {
             if (components.find(e.second.first) != components.find(e.second.second)) {
                 // W function on edges
                 mst_cost += e.first;
@@ -407,7 +430,8 @@ public:
 
     vector<vport_id> getVports(){
         vector<vport_id> res;
-        for(typename map<vport_id, vport,cmpVport>::iterator it = vport_map.begin(); it != vport_map.end(); ++it) {
+        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
+        for(auto it = adj_list.begin(); it != adj_list.end(); ++it) {
             vport_id p = (*it).first;
             res.push_back(p);
         }
@@ -419,21 +443,22 @@ public:
     }
 
 /********** Bipartite **********/
-// This function returns true if graph is Bipartite, else false
+
     bool isNeighbers(const vport_id& src, const vport_id& dst){
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
         for(const Edge<V,P,E>& e : adj_list[src]){
-            if(e.getEdgeId().second == dst)
+            if(e.EdgeId().second == dst)
                 return true;
         }
         return false;
     }
 
+// Function returns true if graph is Bipartite, else false
     bool isBipartite(vport_id src){
         // if src not in graph ...
         map<vport_id,int> colorArr;
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
-        for (typename map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>::iterator it = adj_list.begin(); it != adj_list.end(); ++it) {
+        for (auto it = adj_list.begin(); it != adj_list.end(); ++it) {
             colorArr.insert(pair<vport_id, int>((*it).first,-1));
         }
         // Assign first color to source
@@ -453,7 +478,7 @@ public:
             if(isNeighbers(u,u))
                 return false;
             // Find all non-colored adjacent vertices
-            for (typename map<vport_id, vport, cmpVport>::iterator it = vport_map.begin(); it != vport_map.end(); ++it){
+            for (auto it = adj_list.begin(); it !=adj_list.end(); ++it){
                 vport_id v = (*it).first;
                 // An edge from u to v exists and
                 // destination v is not colored
@@ -473,6 +498,165 @@ public:
         return true;
     }
 
+/********** Induced Graph **********/
+
+    Edge<V,E,P> getEdge(const edge_id id){
+        assert(isNeighbers(id.first,id.second));
+        for(const Edge<V,P,E>& e : getAdjList()[id]){
+            if(e.EdgeId() == id)
+                return e;
+        }
+        //won't get here
+        return Edge<V,P,E>();
+    }
+
+    V& getVertexAttr(const int i){
+        return vport_map[i].getAttribute();
+    }
+
+    void addVport(vport_id id,V& vertex_attr,P& port_attr){
+        //check -
+        Vertex<V,P>  v = Vertex<V,P>();
+        v.setVertexId(id);
+        v.setAttribute(vertex_attr);
+        v.setPortAttr(id.second,port_attr);
+        this->vport_map(v);
+    }
+
+    void addPort(vport_id& id,P& attr = P()){
+        //check -
+        vport_map[id.first].setPortAttr(id.second,attr);
+    }
+
+    //returns all the edges form vertex 'src' to vertex 'dst' ,else empty sub set
+    vector<edge_id> getNeighbers(const int src, const int dst){
+        vector<edge_id> res ;
+        for(const Port<P>& p1 : vport_map[src].getPorts()){
+            vport_id id1 = vport_id(src,p1.getPortId());
+            for(const Port<P>& p2 : vport_map[dst].getPorts()){
+                vport_id id2 = vport_id(dst,p2.getPortId());
+                if(isNeighbers(id1, id2))
+                    res.push_back(edge_id(id1, id2));
+            }
+        }
+        return res;
+    }
+
+    // adds vertex to pg
+    // assume "new" vertex
+    void addVertex(Vertex<V,P>& v){
+        vport_map[v.vertexId()] = v;
+    }
+
+    ///  Induced Graph by vport sub set
+    PortGraph inducedGraph(bool(*pred)(const vport_id)){
+        map<vport_id,int> sub_vport_set;
+        // new induced graph
+        PortGraph<V,P,E> pg = PortGraph<V,P,E>();
+        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
+        // get all vports that satisfies Pred
+        for (auto it = adj_list.begin(); it != adj_list.end(); ++it) {
+            vport_id id = (*it).first;
+            if(pred(id)){
+                sub_vport_set.insert(pair<vport_id,int>(id,1));
+            }
+        }
+        // get all the edges for the induced graph
+        for(auto it1 = sub_vport_set.begin();it1 != sub_vport_set.end();it1++){
+            auto tmp = it1;
+            tmp++;
+            //check
+            for(auto it2 = tmp; it2 != sub_vport_set.end();it2++){
+                vport_id src = (*it1).first;
+                vport_id dst = (*it2).first;
+                // add new vport
+                if(isNeighbers(src,dst)){
+                    //new
+                    if(pg.vport_map.find(src.first) == pg.vport_map.end()){
+                        pg.addVport(src,vport_map[src.first].getAttribute(),vport_map[src.first].getPort(src.second).getAttribute());
+                        if(pg.vport_map.find(dst.first) == pg.vport_map.end()){
+                            //new
+                            pg.addVport(src,vport_map[dst.first].getAttribute(),vport_map[dst.first].getPort(dst.second).getAttribute());
+                        }else{
+                            pg.addPort(dst,vport_map[dst.first].getPort(dst.second).getAttribute());
+                        }
+                    }else {
+                        pg.addPort(src,vport_map[src.first].getPort(src.second).getAttribute());
+                        if (pg.vport_map.find(dst.first) == pg.vport_map.end()) {
+                            //new
+                            pg.addVport(src,vport_map[dst.first].getAttribute(),vport_map[dst.first].getPort(dst.second).getAttribute());
+                        }else{
+                            pg.addPort(dst,vport_map[dst.first].getPort(dst.second).getAttribute());
+                        }
+                    }
+                    // add new edge
+                    edge_id e_id = edge_id(src,dst);
+                    P& e_attr = getEdge(e_id).getAttribute();
+                    //check -
+                    // add rev
+                    pg.addEdge(e_id,e_attr);
+                }
+            }
+        }
+
+        // new induced port graph
+        return pg;
+    }
+
+    ///  Induced Graph by vertex sub set
+    PortGraph inducedGraph(bool(*pred)(const int)){
+        map<int,int> sub_vertex_set;
+        // new induced graph
+        PortGraph<V,P,E> pg = PortGraph<V,P,E>();
+        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
+        // get all vports that satisfies Pred
+        for (auto it = adj_list.begin(); it != adj_list.end(); ++it) {
+            vport_id id = (*it).first;
+            if(pred(id.first)){
+                sub_vertex_set.insert(pair<int,int>(id.first,1));
+            }
+        }
+        // get all the edges for the induced graph
+        for(auto it1 = sub_vertex_set.begin();it1 !=sub_vertex_set.end();it1++){
+            auto tmp = it1;
+            tmp++;
+            //check
+            for(auto it2 = tmp; it2 != sub_vertex_set.end();it2++){
+                int src = (*it1).first;
+                int dst = (*it2).first;
+                const vector<edge_id>& vec = getNeighbers(src, dst);
+
+                // add first vertex
+                Vertex<V,P> v1 = Vertex<V,P>();
+                v1.setVertexId(src);
+                v1.getAttribute(vport_map[src].getAttribute());
+                pg.addVertex(v1);
+
+                // add second vertex
+                Vertex<V,P> v2 = Vertex<V,P>();
+                v2.setVertexId(dst);
+                v2.getAttribute(vport_map[dst].getAttribute());
+                pg.addVertex(v2);
+
+                if(! vec.empty()){
+                    //new edge
+                    for(auto e_id : vec){
+                        pg.addPort(e_id.first, vport_map[src].getPort().getAttribute());
+                        pg.addPort(e_id.second, vport_map[dst].getPort().getAttribute());
+                        Edge<V,P,E> edge = this->getEdge(e_id);
+                        pg.addEdge(edge.EdgeId(), edge.getAttribute());
+                    }
+                }
+            }
+        }
+
+        // new induced port graph
+        return pg;
+    }
+
+    ///  Induced Graph by edge sub set
+    //PortGraph inducedGraph(bool(*pred)(const edge_id))
+
     /* TODO:
      *  topological_sort -- DONE
      *  strongly_connected_components -- DONE
@@ -480,8 +664,9 @@ public:
      *  min_spanning_tree -- Done
      *  {DFS | BFS} we should implement an {DFS | BFS} iterator -- DONE
      *  is_bipartite() -- DONE
+     *  induced_graph(vports/vertices/edges) -- DONE
 
-     FERAS
+    FERAS
     shortestpath(weight_function) --
     findPathCost(vport, vport, cost_function) --
     is_reachable(vport source, vport dest) --
@@ -489,7 +674,7 @@ public:
     max_flow --
     min_cut() --
 
-     MARIO
+    MARIO
     induced_graph(vports/vertices/edges) // or filter --
     is_subgraph(subgraph) --
     netlistToPortGraph // maybe constructor --
@@ -500,7 +685,6 @@ public:
     */
 
 };
-
 
 template <class V , class P , class E >
 class DFSIterator : public PGIterator {
@@ -540,7 +724,7 @@ public:
         while(!not_visited.empty()){
             vport_id current_src = current;
             for(Edge<V,P,E> e : pg->getAdjList(current_src)){
-                vport_id dst = e.getEdgeId().second;
+                vport_id dst = e.EdgeId().second;
                 if(visited.find(dst) == visited.end()){
                     //assert(not_visited.find(dst) != not_visited.end());
                     visited.insert(pair<vport_id,bool>(dst,true));
@@ -628,7 +812,7 @@ public:
         queue.erase(queue.begin());
         // add the next layer
         for(Edge<V,P,E> e : pg->getAdjList(current_src)){
-            vport_id dst = e.getEdgeId().second;
+            vport_id dst = e.EdgeId().second;
             if(visited.find(dst) == visited.end()){
                 assert(not_visited.find(dst) != not_visited.end());
                 visited.insert(pair<vport_id,bool>(dst,true));
