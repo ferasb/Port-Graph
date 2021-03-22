@@ -13,6 +13,10 @@
 #include <sstream>
 #include <iterator> // For std::forward_iterator_tag
 #include <cstddef>  // For std::ptrdiff_t
+#include <assert.h> // For assert
+#include <algorithm> // For sort
+#include <float.h>  // For DBL_MAX
+#include <queue>   // For priority_queue
 using namespace std;
 
 // Forward declarations
@@ -34,6 +38,11 @@ typedef pair<int, int> vport_id;
 #define END vport_id(-1,-1)
 
 typedef pair<vport_id, vport_id> edge_id;
+
+typedef pair<vport_id, vport_id> vport_pair_id;
+
+
+typedef double (*WeightFunction)(edge_id);
 
 //For DFS/BFS Iterators
 class PGIterator{

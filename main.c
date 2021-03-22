@@ -194,6 +194,90 @@ void test4(){
     assert(pg.isBipartite(ids[0])==false);
 }
 
+
+void test5(){
+    ostringstream s;
+    s << "TEST 5" << endl;
+    s << "testing isReachable - int , int ,int" << endl ;
+    fprintf(stderr, s.str().c_str());
+    vector<vport_id> ids;
+    vector<int> ports_num;
+    for(int i = 0; i < 12;i++){
+        ids.push_back(vport_id(i,0));
+        ports_num.push_back(1);
+    }
+    vector<edge_id> edges_list({edge_id(ids[0], ids[2]),
+                                edge_id(ids[0], ids[4]),
+                                edge_id(ids[0], ids[3]),
+                                edge_id(ids[2], ids[5]),
+                                edge_id(ids[2], ids[1]),
+                                edge_id(ids[4], ids[7]),
+                                edge_id(ids[4], ids[11]),
+                                edge_id(ids[1], ids[9]),
+                                edge_id(ids[1], ids[10]),
+                                edge_id(ids[7], ids[10]),
+                                edge_id(ids[9], ids[6]),
+                                edge_id(ids[10], ids[6]),
+                                edge_id(ids[11], ids[8])});
+
+    vector<double> edgeAttr({0,0,0,5,1.5,1.5,1,2,1,0.5,1,1,2.5,0});
+    PortGraph<int, int, double> pg = PortGraph<int, int, double >(12, ports_num, edges_list,vector<int>(),vector<vector<int>>(),edgeAttr);
+
+    s.str("");
+    bool reach00_50 = false; // true
+    bool reach00_10 = false; // true
+    bool reach80_00 = false; // false
+    reach00_50 = pg.is_reachable(vport_id(0,0), vport_id(5,0));
+    reach00_10 = pg.is_reachable(vport_id(0,0), vport_id(1,0));
+    reach80_00 = pg.is_reachable(vport_id(8,0), vport_id(0,0));
+
+    s << "reach00_50 is " << (reach00_50? "true" : "false") << endl;
+    s << "reach00_10 is " << (reach00_10? "true" : "false") << endl;
+    s << "reach80_00 is " << (reach80_00? "true" : "false") << endl;
+    fprintf(stderr, s.str().c_str());
+
+}
+
+double f(edge_id id) { return 1;}
+
+void test6(){
+    ostringstream s;
+    s << "TEST 6" << endl;
+    s << "testing shortest paths - int , int ,int" << endl ;
+    fprintf(stderr, s.str().c_str());
+    vector<vport_id> ids;
+    vector<int> ports_num;
+    for(int i = 0; i < 12;i++){
+        ids.push_back(vport_id(i,0));
+        ports_num.push_back(1);
+    }
+    vector<edge_id> edges_list({edge_id(ids[0], ids[2]),
+                                edge_id(ids[0], ids[4]),
+                                edge_id(ids[0], ids[3]),
+                                edge_id(ids[2], ids[5]),
+                                edge_id(ids[2], ids[1]),
+                                edge_id(ids[4], ids[7]),
+                                edge_id(ids[4], ids[11]),
+                                edge_id(ids[1], ids[9]),
+                                edge_id(ids[1], ids[10]),
+                                edge_id(ids[7], ids[10]),
+                                edge_id(ids[9], ids[6]),
+                                edge_id(ids[10], ids[6]),
+                                edge_id(ids[11], ids[8]),
+                                edge_id(ids[0], ids[8])});
+
+    vector<double> edgeAttr({0,0,0,5,1.5,1.5,1,2,1,0.5,1,1,2.5,0});
+    PortGraph<int, int, double> pg = PortGraph<int, int, double >(12, ports_num, edges_list,vector<int>(),vector<vector<int>>(),edgeAttr);
+
+    WeightFunction wf = f;
+    s.str("");
+    auto pth = pg.shortestPath(wf, ids[0], ids[6]);
+    double weight = pg.shortestPathWeight(wf, ids[0], ids[6]);
+
+    fprintf(stderr, s.str().c_str());
+
+}
+
 int main()
 {
     //test1();

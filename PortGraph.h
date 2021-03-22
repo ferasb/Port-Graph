@@ -199,6 +199,11 @@ private:
     map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& AdjacencyList(){
         return is_transpose ? transpose_adjacency_list : adjacency_list ;
     }
+    
+    typedef vector<edge_id> Path;
+    // for shortest paths
+    map<pair<vport_id, vport_id>, double> shortest_paths_weights;
+    map<pair<vport_id, vport_id>, Path> shortest_paths;
 
 public:
     // Build PortGraph with
@@ -274,6 +279,15 @@ public:
         for (auto it = adjacency_list.begin(); it != adjacency_list.end(); ++it)
             for(auto e : (*it).second)
                 e.print();
+    }
+
+    vector<edge_id> getOutgoingEdges(vport_id id) {
+        auto adj_list = AdjacencyList();
+        vector<edge_id> to_return;
+        for(auto e : adj_list[id]) {
+            to_return.push_back(e.EdgeId());
+        }
+        return to_return;
     }
 
 /********** Topological Sort **********/
@@ -711,6 +725,96 @@ public:
         }
         return pg;
     }
+
+    
+    /* Return true if dest is reachable from source
+       Else return false
+    */
+    bool is_reachable(vport_id source, vport_id dest) {
+        BFSIterator<V,P,E> itr = BFSIterator<V,P,E>(this, source);
+        for (; itr != end(); itr = itr.next()) {
+            if (*itr == dest)
+                return true;
+        }
+        return false;
+    }
+
+    /*
+     * Returns a vector of edges that represent the shortest path from source to dest (path)
+     * If there's no path then return empty vector
+     */
+    Path shortestPath(WeightFunction wf, vport_id source, vport_id dest) {
+        pair<vport_id, vport_id> pair_id = pair<vport_id, vport_id>(source, dest);
+        try {
+            Path p = shortest_paths.at(pair_id);
+        } catch (...) {
+            // failed, calculate all shortest paths from source
+            vector<vport_id> vp_id_vec = getVports();
+            map<vport_id, vport_id> prev;
+            for (auto vp_id : vp_id_vec) {
+                shortest_paths_weights.insert(pair<vport_pair_id, double>(vport_pair_id(source, vp_id), DBL_MAX));
+                prev[vp_id] = vport_id(-2, -2); //undefined
+            }
+            shortest_paths_weights.at(vport_pair_id(source, source)) = 0;
+            typedef pair<vport_id, double*> id_weight_pair;
+            class id_weight_pair_comparator {
+            public:
+                bool operator()(const id_weight_pair& lhs, const id_weight_pair& rhs)
+                {
+                    return *(lhs.second) > *(rhs.second);
+                }
+            };
+            priority_queue<id_weight_pair, vector<id_weight_pair>, id_weight_pair_comparator> pq;
+            for (auto vp_id : vp_id_vec) {
+                pq.push(id_weight_pair(vp_id, &(shortest_paths_weights.at(vport_pair_id(source, vp_id)))));
+            }
+            while (!pq.empty()) {
+                id_weight_pair current = pq.top();
+                pq.pop();
+                auto outgoingEdges = getOutgoingEdges(current.first);
+                for (auto e : outgoingEdges) {
+                    double dist = *current.second + wf(e);
+                    if (dist < shortest_paths_weights.at(vport_pair_id(source, e.second))) {
+                        shortest_paths_weights.at(vport_pair_id(source, e.second)) = dist;
+                        prev[e.second] = current.first;
+                    }
+                }
+            }
+            Path p1;
+            vport_id x = dest;
+            while(x != source) {
+                vport_id y = prev[x];
+                if (y == vport_id(-2, -2)) {
+                    p1.clear();
+                    break;
+                }
+                p1.push_back(edge_id(y, x));
+                x = y;
+            }
+            std::reverse(p1.begin(), p1.end());
+            return p1;
+        }
+    }
+
+    double shortestPathWeight(WeightFunction wf, vport_id source, vport_id dest) {
+        pair<vport_id, vport_id> pair_id = pair<vport_id, vport_id>(source, dest);
+        double shortest_path_weight = DBL_MAX;
+        try {
+            shortest_path_weight = shortest_paths_weights.at(pair_id);
+        } catch (const std::out_of_range& oor) {
+            shortestPath(wf, source, dest);
+            // this shouldn't fail
+            try {
+                shortest_path_weight = shortest_paths_weights.at(pair_id);
+            }
+            catch (const std::out_of_range& oor) {
+                printf("Error\n");
+                assert(0);
+            }
+        }
+        return shortest_path_weight;
+    }
+
 
     /* TODO:
      *  topological_sort -- DONE
