@@ -279,8 +279,10 @@ void test6(){
     s << "shorest path weight from vport 00 to vport 60 " << weight << "." << endl;
     s << "shortest path is: ";
     for (auto& id: pth) {
-        s << "(" << id.first.first << ", " << id.first.second << ") " << "-- (" << id.second.first << ", " << id.second.second << "), ";
+        s << "(" << id.first.first << ", " << id.first.second << ") " << "-- ";
     } 
+    auto& id = pth[pth.size()-1];
+    s << "(" << id.second.first << ", " << id.second.second << ").";
     fprintf(stderr, s.str().c_str());
 
 }
