@@ -270,10 +270,17 @@ void test6(){
     PortGraph<int, int, double> pg = PortGraph<int, int, double >(12, ports_num, edges_list,vector<int>(),vector<vector<int>>(),edgeAttr);
 
     WeightFunction wf = f;
+    vport_id src = ids[0];
+    vport_id dst = ids[6];
     s.str("");
-    auto pth = pg.shortestPath(wf, ids[0], ids[6]);
-    double weight = pg.shortestPathWeight(wf, ids[0], ids[6]);
+    auto pth = pg.shortestPath(wf, src, dst);
+    double weight = pg.shortestPathWeight(wf, src, dst);
 
+    s << "shorest path weight from vport 00 to vport 60 " << weight << "." << endl;
+    s << "shortest path is: ";
+    for (auto& id: pth) {
+        s << "(" << id.first.first << ", " << id.first.second << ") " << "-- (" << id.second.first << ", " << id.second.second << "), ";
+    } 
     fprintf(stderr, s.str().c_str());
 
 }
@@ -284,6 +291,8 @@ int main()
     //test2();
     //test3();
     //test4();
+    //test5();
+    test6();
 
     return 0;
 

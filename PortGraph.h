@@ -145,10 +145,26 @@ public:
 
     E getAttribute() { return attribute; }
 
-     void print() {
+    ostringstream toString() {
          ostringstream s;
          s << "Edge (" << id.first.first << ", " << id.first.second << ") " << "-- (" << id.second.first << ", " << id.second.second << ") " ;
          s << "with attribute " << attribute << endl ;
+         return s;
+     }
+
+    ostringstream toStringIds() {
+        ostringstream s;
+        s << "Edge (" << id.first.first << ", " << id.first.second << ") " << "-- (" << id.second.first << ", " << id.second.second << ") " ;
+        return s;
+    }
+
+    void print() {
+         ostringstream s = toString();
+         fprintf(stderr, s.str().c_str());
+     }
+
+    void printIds() {
+         ostringstream s = toStringIds();
          fprintf(stderr, s.str().c_str());
      }
 
@@ -992,6 +1008,34 @@ public:
             queue.push_back(current);
             visited.insert(pair<vport_id,bool>(current,true));
             not_visited.erase(current);
+        }
+        return (*this);
+    }
+
+        BFSIterator next() {
+        if(queue.empty()){
+            current = vport_id(END);
+            return *this;
+        }
+        vport_id current_src = queue.front();
+        queue.erase(queue.begin());
+        // add the next layer
+        for(Edge<V,P,E> e : pg->getAdjList(current_src)){
+            vport_id dst = e.EdgeId().second;
+            if(visited.find(dst) == visited.end()){
+                assert(not_visited.find(dst) != not_visited.end());
+                visited.insert(pair<vport_id,bool>(dst,true));
+                not_visited.erase(dst);
+                queue.push_back(dst);
+            }
+        }
+        if(!queue.empty()) {
+            current = queue.front();
+            return (*this);
+        }
+        else{ // return end
+            current = vport_id(END);
+            return *this;
         }
         return (*this);
     }
