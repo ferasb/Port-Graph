@@ -146,11 +146,11 @@ public:
     E getAttribute() { return attribute; }
 
     ostringstream toString() {
-         ostringstream s;
-         s << "Edge (" << id.first.first << ", " << id.first.second << ") " << "-- (" << id.second.first << ", " << id.second.second << ") " ;
-         s << "with attribute " << attribute << endl ;
-         return s;
-     }
+        ostringstream s;
+        s << "Edge (" << id.first.first << ", " << id.first.second << ") " << "-- (" << id.second.first << ", " << id.second.second << ") " ;
+        s << "with attribute " << attribute << endl ;
+        return s;
+    }
 
     ostringstream toStringIds() {
         ostringstream s;
@@ -159,14 +159,14 @@ public:
     }
 
     void print() {
-         ostringstream s = toString();
-         fprintf(stderr, s.str().c_str());
-     }
+        ostringstream s = toString();
+        fprintf(stderr, s.str().c_str());
+    }
 
     void printIds() {
-         ostringstream s = toStringIds();
-         fprintf(stderr, s.str().c_str());
-     }
+        ostringstream s = toStringIds();
+        fprintf(stderr, s.str().c_str());
+    }
 
 private:
     vport source;
@@ -198,26 +198,41 @@ class BFSIterator;
 template <class V = int, class P = int, class E = int>
 class PortGraph {
 private:
+
     // maps vport vp (vertix and port) to all the edges that has an vp as a source
     map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> adjacency_list;
     // maps vport vp (vertix and port) to all the transpose edges that has an vp as a source
     map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> transpose_adjacency_list;
+
     // flag for the transpose Graph
     bool is_transpose ;
+
     // maps vport_id (vertix and port) to its vport
     // vertex id -> vertex
     // vmap por_id -> attr
     map<int, Vertex<V,P>> vport_map;
+
+    //maps vertex_id -> neighbors :- vertices
+    map<int,map<int,bool>> vertex_neighbors;
+    //maps vertex_id -> neighbors :- vertices for the transpose graph
+    map<int,map<int,bool>> transpose_vertex_neighbors;
+
     // params for SCC
     const int UNSEEN = -1;
     const int SEEN = 1;
+
     // for Algo's in case of transpose
     map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& AdjacencyList(){
         return is_transpose ? transpose_adjacency_list : adjacency_list ;
     }
-    
-    typedef vector<edge_id> Path;
+
+    // for Algo's in case of transpose
+    map<int,map<int,bool>>& VertexNeighbors(){
+        return is_transpose ? transpose_vertex_neighbors : vertex_neighbors ;
+    }
+
     // for shortest paths
+    typedef vector<edge_id> Path;
     map<pair<vport_id, vport_id>, double> shortest_paths_weights;
     map<pair<vport_id, vport_id>, Path> shortest_paths;
 
@@ -255,9 +270,18 @@ public:
     }
 
     void transposeGraph(){
+        //check
         is_transpose = !is_transpose;
     }
 
+    bool isTranspose(){
+        return is_transpose;
+    }
+
+    void setTranspose(bool _is_transpose){
+        is_transpose = _is_transpose;
+    }
+    
     void addVertix(int vertex_id, int ports_num, V attr = V(), PortsAttributes ports_attr = PortsAttributes())
     {
         for (int i = 0; i < ports_num; ++i) {
@@ -267,6 +291,9 @@ public:
             P portAttr =  ports_attr.empty() ? P() : ports_attr[i] ;
         }
         vport_map[vertex_id] = Vertex<V, P>(vertex_id, ports_num, attr, ports_attr);
+        if(vertex_neighbors.find(vertex_id) == vertex_neighbors.end())
+            vertex_neighbors[vertex_id] = map<int,bool>();
+            transpose_vertex_neighbors[vertex_id] = map<int,bool>();
     }
 
     void addEdge(edge_id id, E attr = E())
@@ -279,6 +306,11 @@ public:
         adjacency_list[id.first].insert(Edge<V, P, E>(vp1, vp2, attr) );
         // add transpose Edge
         transpose_adjacency_list[id.second].insert(Edge<V, P, E>(vp2, vp1, attr));
+        //check
+        if(vertex_neighbors[id.first.first].find(id.second.first) == vertex_neighbors[id.first.first].end())
+            vertex_neighbors[id.first.first].insert(pair<int,bool>(id.second.first,true));
+        if(transpose_vertex_neighbors[id.second.first].find(id.first.first) == transpose_vertex_neighbors[id.second.first].end())
+            transpose_vertex_neighbors[id.second.first].insert(pair<int,bool>(id.first.first, true));
     }
 
     //Print the vertcies and ports per vertex
@@ -399,7 +431,7 @@ public:
     }
 
 /********** Min Spanning Tree **********/
-
+private:
     struct unionfindPG  {
         map<vport_id ,int> rank;
         map<vport_id ,vport_id >parent;
@@ -437,6 +469,7 @@ public:
 // input: edges v1->v2 of the form (weight,(v1,v2)),
 //        number of nodes (n), all nodes are between 0 and n-1.
 // output: weight of a minimum spanning tree.
+public:
     double Kruskal(double(*weightFunc)(const edge_id ,const E attr)){
         int n = AdjacencyList().size();
         // (weight , edge_id)
@@ -462,8 +495,13 @@ public:
     }
 
 /********** BFS/DFS **********/
-    PGIterator end(){
-        return PGIterator(vport_id(-1,-1));
+
+    PGVportIterator vportEnd(){
+        return PGVportIterator(vport_id(-1,-1));
+    }
+
+    PGVertexIterator vertexEnd(){
+        return PGVertexIterator(-1);
     }
 
     vector<vport_id> getVports(){
@@ -476,8 +514,22 @@ public:
         return res;
     }
 
+    vector<int> getVertices(){
+        vector<int> res;
+        for(auto it : vport_map)
+            res.push_back(it.first);
+        return res;
+    }
+
     set<Edge<V,P,E>,cmpEdge<V,P,E>> getAdjList(vport_id id){
         return AdjacencyList()[id];
+    }
+
+    vector<int> getVertexAdjList(int src){
+        vector<int> res;
+        for(auto it : VertexNeighbors()[src])
+            res.push_back(it.first);
+        return res;
     }
 
 /********** Bipartite **********/
@@ -619,7 +671,7 @@ public:
                     if(dst.first == 6){
                         int x = 0 ;
                     }
-                     int y = 0;
+                    int y = 0;
                     if(hash.find(src.first) == hash.end()){
                         hash[src.first] = 1;
                         pg.addVport(src,vport_map[src.first].getAttribute(),vport_map[src.first].getPort(src.second).getAttribute());
@@ -650,6 +702,7 @@ public:
         }
 
         // new induced port graph
+        pg.setTranspose(this->isTranspose());
         return pg;
     }
 
@@ -705,6 +758,7 @@ public:
         }
 
         // new induced port graph
+        pg.setTranspose(this->isTranspose());
         return pg;
     }
 
@@ -739,16 +793,18 @@ public:
                 }
             }
         }
+        // new induced port graph
+        pg.setTranspose(this->isTranspose());
         return pg;
     }
 
-    
+
     /* Return true if dest is reachable from source
        Else return false
     */
     bool is_reachable(vport_id source, vport_id dest) {
         BFSIterator<V,P,E> itr = BFSIterator<V,P,E>(this, source);
-        for (; itr != end(); itr = itr.next()) {
+        for (; itr != vportEnd(); itr = itr.next()) {
             if (*itr == dest)
                 return true;
         }
@@ -837,31 +893,31 @@ public:
      *  strongly_connected_components -- DONE
      *  transpose_graph -- Done
      *  min_spanning_tree -- Done
-     *  {DFS | BFS} iterator -- DONE
+     *  {DFS | BFS} iterator / two versions -- DONE
      *  is_bipartite -- DONE
      *  induced_graph by (vports/vertices/edges) -- DONE
+     *  shortestpath(weight_function) -- DONE
+     *  findPathCost(vport, vport, cost_function) -- DONE
+     *  is_reachable(vport source, vport dest) -- DONE
 
     FERAS
-    shortestpath(weight_function) --
-    findPathCost(vport, vport, cost_function) --
-    is_reachable(vport source, vport dest) --
     is_reachable(vertex source, vertex dest) --
     max_flow --
     min_cut() --
 
     MARIO
+    findQluik --
     is_subgraph(subgraph) --
-    netlistToPortGraph // maybe constructor --
 
-     4 later
-    colouring --
+    4 later
     make_connected // maybe with min edges --
     */
 
 };
 
+//DFS BY VPORT
 template <class V , class P , class E >
-class DFSIterator : public PGIterator {
+class DFSIterator : public PGVportIterator {
 private:
     vector<vport_id> path;
     PortGraph<V,P,E>* pg;
@@ -920,7 +976,7 @@ public:
                 return (*this);
             }
         }
-        current = END;
+        current = END_VPORT;
         return *this;
     }
 
@@ -938,12 +994,98 @@ public:
 //        return *current;
 //    }
 
-    bool operator== (const PGIterator& that)const {return (this->current) == (*that) ;}
-    bool operator!= (const PGIterator& that)const {return !this->operator==(that);}
+    bool operator== (const PGVportIterator& that)const {return (this->current) == (*that) ;}
+    bool operator!= (const PGVportIterator& that)const {return !this->operator == (that) ;}
 };
 
+//DFS BY VERTEX
 template <class V , class P , class E >
-class BFSIterator : public PGIterator{
+class DFSVertexIterator : public PGVertexIterator {
+private:
+    vector<int> path;
+    PortGraph<V,P,E>* pg;
+    map<int,bool> visited;
+    map<int,bool> not_visited;
+    DFSVertexIterator(vector<int> _path,PortGraph<V,P,E>* _pg,map<int,bool>& _visited,map<int,bool>& _not_visited,int _current){
+        path = _path;
+        pg = _pg;
+        visited = _visited;
+        not_visited = _not_visited;
+        current = _current;
+    }
+public:
+
+    DFSVertexIterator(int id){
+        current = id;
+    }
+
+    DFSVertexIterator(PortGraph<V,P,E>* _pg,int src){
+        this->pg = _pg;
+        // if src not found in PG
+        path.push_back(src);
+        visited.insert(pair<int,bool>(src,true));
+        current = src;
+        for(auto p : pg->getVertices()) {
+            if(p != src)
+                not_visited.insert(pair<int, bool>(p, true));
+        }
+    }
+
+    ~DFSVertexIterator(){}
+
+    DFSVertexIterator operator++() {
+        while(!not_visited.empty()){
+            int current_src = current;
+            //done
+            for(int dst : pg->getVertexAdjList(current_src)){
+                //vport_id dst = e.EdgeId().second;
+                if(visited.find(dst) == visited.end()){
+                    //assert(not_visited.find(dst) != not_visited.end());
+                    visited.insert(pair<int,bool>(dst,true));
+                    not_visited.erase(dst);
+                    path.push_back(dst);
+                    current = dst;
+                    return (*this);
+                }
+            }
+            //done
+            path.pop_back();
+            if(!path.empty())
+                current = path.back();
+            else{// get random new 'not visited' vertex
+                auto it = not_visited.begin();
+                current = (*it).first;
+                path.push_back(current);
+                visited.insert(pair<int,bool>(current,true));
+                not_visited.erase(current);
+                return (*this);
+            }
+        }
+        current = END_VERTEX;
+        return *this;
+    }
+
+    DFSVertexIterator operator++(int) const {
+        DFSVertexIterator old = DFSVertexIterator(path,pg,visited,not_visited,current);
+        this->operator++();
+        return old;
+    }
+
+    int operator*()const {
+        return current;
+    }
+
+//  vport_id const& operator*(){
+//        return *current;
+//    }
+
+    bool operator== (const PGVertexIterator& that)const {return (this->current) == (*that) ;}
+    bool operator!= (const PGVertexIterator& that)const {return !this->operator == (that) ;}
+};
+
+//BFS BY VPORT
+template <class V , class P , class E >
+class BFSIterator : public PGVportIterator{
 private:
     vector<vport_id> queue;
     PortGraph<V,P,E>* pg;
@@ -979,7 +1121,7 @@ public:
 
     BFSIterator operator++() {
         if(queue.empty()){
-            current = vport_id(END);
+            current = vport_id(END_VPORT);
             return *this;
         }
         vport_id current_src = queue.front();
@@ -1000,7 +1142,7 @@ public:
         }
         else{// get new random 'not visited' vport
             if(not_visited.empty()){
-                current = vport_id(END);
+                current = vport_id(END_VPORT);
                 return *this;
             }
             auto it = not_visited.begin();
@@ -1012,9 +1154,9 @@ public:
         return (*this);
     }
 
-        BFSIterator next() {
+    BFSIterator next() {
         if(queue.empty()){
-            current = vport_id(END);
+            current = vport_id(END_VPORT);
             return *this;
         }
         vport_id current_src = queue.front();
@@ -1034,7 +1176,7 @@ public:
             return (*this);
         }
         else{ // return end
-            current = vport_id(END);
+            current = vport_id(END_VPORT);
             return *this;
         }
         return (*this);
@@ -1054,8 +1196,123 @@ public:
 //        return *current;
 //    }
 
-    bool operator== (const PGIterator& that)const {return (this->current) == (*that) ;}
-    bool operator!= (const PGIterator& that)const {return !this->operator==(that);}
+    bool operator== (const PGVportIterator& that)const {return (this->current) == (*that) ;}
+    bool operator!= (const PGVportIterator& that)const {return !this->operator==(that);}
+};
+
+//BFS BY VERTEX
+template <class V , class P , class E >
+class BFSVertexIterator : public PGVertexIterator{
+private:
+    vector<int> queue;
+    PortGraph<V,P,E>* pg;
+    map<int,bool> visited;
+    map<int,bool> not_visited;
+    int current;
+    BFSVertexIterator(vector<vport_id> _queue,PortGraph<V,P,E>* _pg,map<vport_id,bool>& _visited,map<vport_id,bool>& _not_visited,vport_id _current){
+        queue = _queue;
+        pg = _pg;
+        visited = _visited;
+        not_visited = _not_visited;
+        current = _current;
+    }
+public:
+
+    BFSVertexIterator(vport_id id){
+        current = id;
+    }
+
+    ~BFSVertexIterator(){}
+
+    BFSVertexIterator(PortGraph<V,P,E>* _pg,int src){
+        this->pg = _pg;
+        // if src not found in PG
+        queue.push_back(src);
+        visited.insert(pair<int,bool>(src,true));
+        current = src;
+        for(auto p : pg->getVertices()) {
+            if(p != src)
+                not_visited.insert(pair<int, bool>(p, true));
+        }
+    }
+
+    BFSVertexIterator operator++() {
+        if(queue.empty()){
+            current = END_VERTEX;
+            return *this;
+        }
+        int current_src = queue.front();
+        queue.erase(queue.begin());
+        // add the next layer
+        for(int dst : pg->getVertexAdjList(current_src)){
+            if(visited.find(dst) == visited.end()){
+                assert(not_visited.find(dst) != not_visited.end());
+                visited.insert(pair<int,bool>(dst,true));
+                not_visited.erase(dst);
+                queue.push_back(dst);
+            }
+        }
+        if(!queue.empty()) {
+            current = queue.front();
+            return (*this);
+        }
+        else{// get new random 'not visited' vertex
+            if(not_visited.empty()){
+                current = END_VERTEX;
+                return *this;
+            }
+            auto it = not_visited.begin();
+            current = (*it).first;
+            queue.push_back(current);
+            visited.insert(pair<int,bool>(current,true));
+            not_visited.erase(current);
+        }
+        return (*this);
+    }
+
+    BFSVertexIterator next() {
+        if(queue.empty()){
+            current = END_VERTEX;
+            return *this;
+        }
+        int current_src = queue.front();
+        queue.erase(queue.begin());
+        // add the next layer
+        for(int  dst : pg->getAdjList(current_src)){
+            if(visited.find(dst) == visited.end()){
+                assert(not_visited.find(dst) != not_visited.end());
+                visited.insert(pair<int,bool>(dst,true));
+                not_visited.erase(dst);
+                queue.push_back(dst);
+            }
+        }
+        if(!queue.empty()) {
+            current = queue.front();
+            return (*this);
+        }
+        else{ // return end
+            current = END_VERTEX;
+            return *this;
+        }
+        return (*this);
+    }
+
+    BFSVertexIterator operator++(int) const {
+        BFSVertexIterator old = BFSVertexIterator(queue,pg,visited,not_visited,current);
+        this->operator++();
+        return old;
+    }
+
+    int operator*()const {
+        return current;
+    }
+
+//  vport_id const& operator*(){
+//        return *current;
+//    }
+
+    bool operator== (const PGVertexIterator& that)const {return (this->current) == (*that) ;}
+    bool operator!= (const PGVertexIterator& that)const {return !this->operator == (that);}
 };
 
 #endif //PROJECT1_PORTGRAPH_H

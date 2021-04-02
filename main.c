@@ -34,7 +34,7 @@ void test1(){
     pg.PrintEdges();
     //--- DFS Test
     DFSIterator<int,int,int> it1(&pg,id1);
-    for(;it1 != pg.end() ;++it1){
+    for(;it1 != pg.vportEnd() ;++it1){
         vport_id curr = (*it1);
         ostringstream s1;
         s1<< curr.first << " " << curr.second<< endl;
@@ -42,7 +42,7 @@ void test1(){
     }
     //---BFS Test
     BFSIterator<int,int,int> it2(&pg,id1);
-    for(;it2 != pg.end() ;++it2){
+    for(;it2 != pg.vportEnd() ;++it2){
         vport_id curr = (*it2);
         ostringstream s2;
         s2<< curr.first << " " << curr.second<< endl;
@@ -87,7 +87,7 @@ void test2(){
 }
 
 // Tree Test - without Attr
-// Link to graph : http://graphonline.ru/en/?graph=TmJTylolZRuHGGkP
+// Link to graph : http://graphonline.ru/en/?graph=FtwOzXetpFQcUCxz
 void test3(){
     ostringstream s;
     s << "TEST 3" << endl;
@@ -99,6 +99,8 @@ void test3(){
         ids.push_back(vport_id(i,0));
         ports_num.push_back(1);
     }
+    ids.push_back(vport_id(0,1));
+    ports_num[0]++;
     vector<edge_id> edges_list({edge_id(ids[0], ids[1]),
                                 edge_id(ids[0], ids[2]),
                                 edge_id(ids[1], ids[3]),
@@ -109,12 +111,13 @@ void test3(){
                                 edge_id(ids[3], ids[8]),
                                 edge_id(ids[4], ids[9]),
                                 edge_id(ids[5], ids[10]),
-                                edge_id(ids[6], ids[11])});
+                                edge_id(ids[6], ids[11]),
+                                edge_id(ids[12], ids[1])});
 
     PortGraph<int, int, int> pg = PortGraph<int, int, int>(12, ports_num, edges_list);
     // ----
     // DFS TEST
-    for(DFSIterator<int,int,int> it1(&pg,ids[0]);it1 != pg.end() ;++it1){
+    for(DFSIterator<int,int,int> it1(&pg,ids[12]);it1 != pg.vportEnd() ;++it1){
         vport_id curr = (*it1);
         ostringstream s1;
         s1<< curr.first << " " << curr.second<< endl;
@@ -123,10 +126,23 @@ void test3(){
     s<<endl;
     fprintf(stderr,s.str().c_str());
     //---BFS Test
-    for(BFSIterator<int,int,int> it2(&pg,ids[0]);it2 != pg.end() ;++it2){
+    for(BFSIterator<int,int,int> it2(&pg,ids[12]);it2 != pg.vportEnd() ;++it2){
         vport_id curr = (*it2);
         ostringstream s2;
         s2<< curr.first << " " << curr.second<< endl;
+        fprintf(stderr,s2.str().c_str());
+    }
+        for(DFSVertexIterator<int,int,int> it1(&pg,0);it1 !=  pg.vertexEnd() ;++it1){
+        int curr = (*it1);
+        ostringstream s1;
+        s1<< curr << endl;
+        fprintf(stderr,s1.str().c_str());
+    }
+    //---BFS Test
+    for(BFSVertexIterator<int,int,int> it2(&pg,0);it2 != pg.vertexEnd() ;++it2){
+        int curr = (*it2);
+        ostringstream s2;
+        s2<< curr<< endl;
         fprintf(stderr,s2.str().c_str());
     }
 }
@@ -166,7 +182,7 @@ void test4(){
     // ----
     // DFS TEST
     //pg.PrintEdges();
-    for(DFSIterator<int,int,double > it1(&pg,ids[0]);it1 != pg.end() ;++it1){
+    for(DFSIterator<int,int,double > it1(&pg,ids[0]);it1 != pg.vportEnd() ;++it1){
         vport_id curr = (*it1);
         ostringstream s1;
         s1<< curr.first << " " << curr.second<< endl;
@@ -175,7 +191,7 @@ void test4(){
     s<<endl;
     fprintf(stderr,s.str().c_str());
     //---BFS Test
-    for(BFSIterator<int,int,double> it2(&pg,ids[0]);it2 != pg.end() ;++it2){
+    for(BFSIterator<int,int,double> it2(&pg,ids[0]);it2 != pg.vportEnd() ;++it2){
         vport_id curr = (*it2);
         ostringstream s2;
         s2<< curr.first << " " << curr.second<< endl;
@@ -185,7 +201,7 @@ void test4(){
     assert(pg.Kruskal(w) == 13.5);
     //--- isBipartite Test
     assert(pg.isBipartite(ids[0])==true);
-    
+
     //---
     //ADD edge mst=12 ,not 2 colored
     pg.addEdge(edge_id(ids[6], ids[0]),0);
@@ -280,7 +296,7 @@ void test6(){
     s << "shortest path is: ";
     for (auto& id: pth) {
         s << "(" << id.first.first << ", " << id.first.second << ") " << "-- ";
-    } 
+    }
     auto& id = pth[pth.size()-1];
     s << "(" << id.second.first << ", " << id.second.second << ").";
     fprintf(stderr, s.str().c_str());
@@ -294,8 +310,7 @@ int main()
     //test3();
     //test4();
     //test5();
-    test6();
-
+    //test6();
     return 0;
 
 }

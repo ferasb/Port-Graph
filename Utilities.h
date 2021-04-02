@@ -33,9 +33,9 @@ class Edge;
 
 typedef pair<int, int> vport_id;
 
-#define inf  std::numeric_limits<int>::infinity()
+#define END_VPORT vport_id(-1,-1)
 
-#define END vport_id(-1,-1)
+#define END_VERTEX -1
 
 typedef pair<vport_id, vport_id> edge_id;
 
@@ -44,12 +44,12 @@ typedef pair<vport_id, vport_id> vport_pair_id;
 
 typedef double (*WeightFunction)(edge_id);
 
-//For DFS/BFS Iterators
-class PGIterator{
+//For Vport DFS/BFS Iterators
+class PGVportIterator{
 public:
     vport_id current;
-    PGIterator()= default;
-    PGIterator(vport_id src){
+    PGVportIterator()= default;
+    PGVportIterator(vport_id src){
         current = src;
     }
     vport_id operator*()const {
@@ -57,6 +57,21 @@ public:
     }
 
 };
+
+//For Vport DFS/BFS Iterators
+class PGVertexIterator{
+public:
+    int current;
+    PGVertexIterator()= default;
+    PGVertexIterator(int src){
+        current = src;
+    }
+    int operator*()const {
+        return current;
+    }
+
+};
+
 
 #define VerticesAttributes vector<V>
 #define PortsAttributes vector<P>
