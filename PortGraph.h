@@ -237,7 +237,6 @@ private:
     map<pair<vport_id, vport_id>, Path> shortest_paths;
 
 public:
-    // Build PortGraph with
     PortGraph() = default;
 
     PortGraph(int n_vertices, vector<int> ports_num, vector<edge_id> edges_list,
@@ -281,7 +280,7 @@ public:
     void setTranspose(bool _is_transpose){
         is_transpose = _is_transpose;
     }
-    
+
     void addVertix(int vertex_id, int ports_num, V attr = V(), PortsAttributes ports_attr = PortsAttributes())
     {
         for (int i = 0; i < ports_num; ++i) {
@@ -293,7 +292,7 @@ public:
         vport_map[vertex_id] = Vertex<V, P>(vertex_id, ports_num, attr, ports_attr);
         if(vertex_neighbors.find(vertex_id) == vertex_neighbors.end())
             vertex_neighbors[vertex_id] = map<int,bool>();
-            transpose_vertex_neighbors[vertex_id] = map<int,bool>();
+        transpose_vertex_neighbors[vertex_id] = map<int,bool>();
     }
 
     void addEdge(edge_id id, E attr = E())
@@ -811,12 +810,29 @@ public:
         return false;
     }
 
+    /* Return true if dest is reachable from source
+   Else return false
+    */
+    bool is_reachable(vertex_id source, vertex_id dest) {
+        BFSVertexIterator<V,P,E> itr = BFSVertexIterator<V,P,E>(this, source);
+        for (; itr != vertexEnd(); itr = itr.next()) {
+            if (*itr == dest)
+                return true;
+        }
+        return false;
+    }
+
     /*
      * Returns a vector of edges that represent the shortest path from source to dest (path)
      * If there's no path then return empty vector
      */
-    Path shortestPath(WeightFunction wf, vport_id source, vport_id dest) {
-        pair<vport_id, vport_id> pair_id = pair<vport_id, vport_id>(source, dest);
+    Path shortestPath(WeightFunction wf, vport_id src, vport_id dst, bool newWeights = true) {
+        vport_pair_id pair_id = pair<vport_id, vport_id>(src, dst);
+        // if using a new weight function, clear cache
+        if (newWeights) {
+            shortest_paths_weights.clear();
+            shortest_paths.clear();
+        }
         try {
             Path p = shortest_paths.at(pair_id);
         } catch (...) {
@@ -824,10 +840,10 @@ public:
             vector<vport_id> vp_id_vec = getVports();
             map<vport_id, vport_id> prev;
             for (auto vp_id : vp_id_vec) {
-                shortest_paths_weights.insert(pair<vport_pair_id, double>(vport_pair_id(source, vp_id), DBL_MAX));
+                shortest_paths_weights.insert(pair<vport_pair_id, double>(vport_pair_id(src, vp_id), DBL_MAX));
                 prev[vp_id] = vport_id(-2, -2); //undefined
             }
-            shortest_paths_weights.at(vport_pair_id(source, source)) = 0;
+            shortest_paths_weights.at(vport_pair_id(src, src)) = 0;
             typedef pair<vport_id, double*> id_weight_pair;
             class id_weight_pair_comparator {
             public:
@@ -838,7 +854,7 @@ public:
             };
             priority_queue<id_weight_pair, vector<id_weight_pair>, id_weight_pair_comparator> pq;
             for (auto vp_id : vp_id_vec) {
-                pq.push(id_weight_pair(vp_id, &(shortest_paths_weights.at(vport_pair_id(source, vp_id)))));
+                pq.push(id_weight_pair(vp_id, &(shortest_paths_weights.at(vport_pair_id(src, vp_id)))));
             }
             while (!pq.empty()) {
                 id_weight_pair current = pq.top();
@@ -846,35 +862,45 @@ public:
                 auto outgoingEdges = getOutgoingEdges(current.first);
                 for (auto e : outgoingEdges) {
                     double dist = *current.second + wf(e);
-                    if (dist < shortest_paths_weights.at(vport_pair_id(source, e.second))) {
-                        shortest_paths_weights.at(vport_pair_id(source, e.second)) = dist;
+                    if (dist < shortest_paths_weights.at(vport_pair_id(src, e.second))) {
+                        shortest_paths_weights.at(vport_pair_id(src, e.second)) = dist;
                         prev[e.second] = current.first;
                     }
                 }
             }
-            Path p1;
-            vport_id x = dest;
-            while(x != source) {
-                vport_id y = prev[x];
-                if (y == vport_id(-2, -2)) {
-                    p1.clear();
-                    break;
+
+            // save paths in cache
+            for (auto vp_id : vp_id_vec) {
+                Path p1;
+                vport_id x = vp_id;
+                while(x != src) {
+                    vport_id y = prev[x];
+                    if (y == vport_id(-2, -2)) {
+                        p1.clear();
+                        break;
+                    }
+                    p1.push_back(edge_id(y, x));
+                    x = y;
                 }
-                p1.push_back(edge_id(y, x));
-                x = y;
+                std::reverse(p1.begin(), p1.end());
+                shortest_paths[vport_pair_id(src, vp_id)] = p1;
             }
-            std::reverse(p1.begin(), p1.end());
-            return p1;
+            return shortest_paths[pair_id];
         }
     }
 
-    double shortestPathWeight(WeightFunction wf, vport_id source, vport_id dest) {
-        pair<vport_id, vport_id> pair_id = pair<vport_id, vport_id>(source, dest);
+    double shortestPathWeight(WeightFunction wf, vport_id src, vport_id dst, bool newWeights = true) {
+        // if using a new weight function, clear cache
+        if (newWeights) {
+            shortest_paths_weights.clear();
+            shortest_paths.clear();
+        }
+        vport_pair_id pair_id = vport_pair_id(src, dst);
         double shortest_path_weight = DBL_MAX;
         try {
             shortest_path_weight = shortest_paths_weights.at(pair_id);
         } catch (const std::out_of_range& oor) {
-            shortestPath(wf, source, dest);
+            shortestPath(wf, src, dst, newWeights);
             // this shouldn't fail
             try {
                 shortest_path_weight = shortest_paths_weights.at(pair_id);
@@ -886,6 +912,15 @@ public:
         }
         return shortest_path_weight;
     }
+
+    int maxFlow(CapacityFunction cf, vport_id src, vport_id dst){
+        int max_flow = 0;
+
+        return max_flow;
+    }
+
+
+
 
 
     /* TODO:
@@ -899,9 +934,11 @@ public:
      *  shortestpath(weight_function) -- DONE
      *  findPathCost(vport, vport, cost_function) -- DONE
      *  is_reachable(vport source, vport dest) -- DONE
+     *  is_reachable(vertex source, vertex dest) -- DONE
+     *
 
     FERAS
-    is_reachable(vertex source, vertex dest) --
+
     max_flow --
     min_cut() --
 

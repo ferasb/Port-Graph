@@ -132,7 +132,7 @@ void test3(){
         s2<< curr.first << " " << curr.second<< endl;
         fprintf(stderr,s2.str().c_str());
     }
-        for(DFSVertexIterator<int,int,int> it1(&pg,0);it1 !=  pg.vertexEnd() ;++it1){
+    for(DFSVertexIterator<int,int,int> it1(&pg,0);it1 !=  pg.vertexEnd() ;++it1){
         int curr = (*it1);
         ostringstream s1;
         s1<< curr << endl;
@@ -290,9 +290,9 @@ void test6(){
     vport_id dst = ids[6];
     s.str("");
     auto pth = pg.shortestPath(wf, src, dst);
-    double weight = pg.shortestPathWeight(wf, src, dst);
+    double weight = pg.shortestPathWeight(wf, src, dst, false);
 
-    s << "shorest path weight from vport 00 to vport 60 " << weight << "." << endl;
+    s << "shortest path weight from vport 00 to vport 60 is " << weight << "." << endl;
     s << "shortest path is: ";
     for (auto& id: pth) {
         s << "(" << id.first.first << ", " << id.first.second << ") " << "-- ";
@@ -310,7 +310,7 @@ int main()
     //test3();
     //test4();
     //test5();
-    //test6();
+    test6();
     return 0;
 
 }
