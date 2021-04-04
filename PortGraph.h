@@ -654,6 +654,10 @@ public:
         return vport_map[i].getAttribute();
     }
 
+    P& getPortAttr(const int vertex_id , const int port_id){
+        return vport_map[vertex_id].getPort(port_id).getAttribute();
+    }
+
     void addVport(vport_id id,V vertex_attr,P port_attr){
         //check -
         Vertex<V,P>  v = Vertex<V,P>();
@@ -861,6 +865,9 @@ public:
         return false;
     }
 
+    /* Return true if dest is reachable from source
+       Else return false
+    */
     bool is_reachable(vport_id source, vport_id dest) {
         BFSIterator<V,P,E> itr = BFSIterator<V,P,E>(this, source);
         for (; itr != vportEnd(); itr = itr.next()) {
@@ -1030,11 +1037,44 @@ public:
 
 /****************** SubGraph ******************/
 
-    bool isSubGraph(PortGraph<V,P,E>& sub_graph){
-        // vertcies
-        // edges
-        // vports
-        // attribute - vertex / port / edge
+    bool isSubGraph(PortGraph<V,P,E>& sub_graph,bool vertex_attr_check,bool ports_attr_check,bool edge_attr_check){
+        const map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
+        const map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& sub_adj_list = sub_graph.getAdjList();
+
+        /// vertex - check
+        for(int vertex_id : sub_graph.getVertices()){
+            // vertex id
+            if(vport_map[vertex_id] == vport_map.end())
+                return false;
+            // vertex attribute
+            if(vertex_attr_check && sub_graph.getVertexAttr(vertex_id) != vport_map[vertex_id].getAttribute())
+                return false;
+        }
+
+        /// vports - check
+        for(auto id : sub_graph.getVports()){
+            // vport id
+            if(adj_list.find(id) == adj_list.end())
+                return false;
+            // port attribute
+            if(ports_attr_check && sub_graph.getPortAttr(id.first,id.second) != getPortAttr(id.first,id.second))
+                return false;
+        }
+
+        /// edge - check
+        for(auto it = sub_adj_list.begin(); it != sub_adj_list.end(); it++){
+            for(auto e : it->second){
+                edge_id e_id = e.EdgeId();
+                // edge id
+                if(adj_list[e_id.first].find(e_id.second) == adj_list[e_id.first].end())
+                    return false;
+                // edge attribute
+                if(edge_attr_check && sub_graph.getEdge(e_id).getAttribute() != getEdge(e_id).getAttribute())
+                    return false;
+            }
+        }
+
+        // is sub graph
         return true;
     }
 
@@ -1336,7 +1376,7 @@ private:
     map<int,bool> visited;
     map<int,bool> not_visited;
     //int current;
-    BFSVertexIterator(vector<vport_id> _queue,PortGraph<V,P,E>* _pg,map<vport_id,bool>& _visited,map<vport_id,bool>& _not_visited,vport_id _current){
+    BFSVertexIterator(vector<int> _queue,PortGraph<V,P,E>* _pg,map<int,bool>& _visited,map<int,bool>& _not_visited,int _current){
         queue = _queue;
         pg = _pg;
         visited = _visited;
@@ -1345,7 +1385,7 @@ private:
     }
 public:
 
-    BFSVertexIterator(vport_id id){
+    BFSVertexIterator(int id){
         current = id;
     }
 
@@ -1405,7 +1445,7 @@ public:
         int current_src = queue.front();
         queue.erase(queue.begin());
         // add the next layer
-        for(int  dst : pg->getAdjList(current_src)){
+        for(int  dst : pg->getVertexAdjList(current_src)){
             if(visited.find(dst) == visited.end()){
                 assert(not_visited.find(dst) != not_visited.end());
                 visited.insert(pair<int,bool>(dst,true));
@@ -1444,8 +1484,6 @@ public:
 
 #endif //PROJECT1_PORTGRAPH_H
 
-/********** TODO LIST **********/
-
     /* TODO:
      *  topological_sort -- DONE
      *  strongly_connected_components -- DONE
@@ -1458,7 +1496,8 @@ public:
      *  findPathCost(vport, vport, cost_function) -- DONE
      *  is_reachable(vport source, vport dest) -- DONE
      *  findClique (vports/vertices) -- DONE
-     *  isSubGraph -- PIW
+     *  isSubGraph -- DONE
+
 
     FERAS
     is_reachable(vertex source, vertex dest) --
