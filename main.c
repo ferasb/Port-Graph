@@ -367,6 +367,46 @@ void test8() {
                                 edge_id(ids[4], ids[3])});
 }
 
+void test9(){
+    ostringstream s;
+    s << "TEST 6" << endl;
+    s << "testing max flow - int , int ,int" << endl ;
+    fprintf(stderr, s.str().c_str());
+    vector<vport_id> ids;
+    vector<int> ports_num;
+    for(int i = 0; i < 12;i++){
+        ids.push_back(vport_id(i,0));
+        ports_num.push_back(1);
+    }
+    vector<edge_id> edges_list({edge_id(ids[0], ids[2]),
+                                edge_id(ids[0], ids[4]),
+                                edge_id(ids[0], ids[3]),
+                                edge_id(ids[2], ids[5]),
+                                edge_id(ids[2], ids[1]),
+                                edge_id(ids[4], ids[7]),
+                                edge_id(ids[4], ids[11]),
+                                edge_id(ids[1], ids[9]),
+                                edge_id(ids[1], ids[10]),
+                                edge_id(ids[7], ids[10]),
+                                edge_id(ids[9], ids[6]),
+                                edge_id(ids[10], ids[6]),
+                                edge_id(ids[11], ids[8]),
+                                edge_id(ids[0], ids[8])});
+
+    vector<double> edgeAttr({0,0,0,5,1.5,1.5,1,2,1,0.5,1,1,2.5,0});
+    PortGraph<int, int, double> pg = PortGraph<int, int, double >(12, ports_num, edges_list,vector<int>(),vector<vector<int>>(),edgeAttr);
+
+    WeightFunction wf = f;
+    vport_id src = ids[0];
+    vport_id dst = ids[8];
+    s.str("");
+    int flow = pg.maxFlow(g, src, dst);
+
+    s << "flow from vport 00 to vport 60 is " << flow << "." << endl;
+    fprintf(stderr, s.str().c_str());
+
+}
+
 int main()
 {
     //test1();
@@ -377,6 +417,7 @@ int main()
     //test6();
     //test7();
     //test8();
+    //test9();
     return 0;
 
 }

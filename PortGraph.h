@@ -232,6 +232,9 @@ private:
     map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> adjacency_list;
     // maps vport vp (vertix and port) to all the transpose edges that has an vp as a source
     map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> transpose_adjacency_list;
+    // maps vport vp (vertix and port) to all the vports that has an vp as a source or dest
+    map<vport_id, set<vport_id>> adjacency_list_undirected;
+
 
     // flag for the transpose Graph
     bool is_transpose ;
@@ -317,12 +320,13 @@ public:
             adjacency_list[vport_id(vertex_id, i)] = set<Edge<V, P, E>, cmpEdge<V,P,E>>();
             // transpose Graph
             transpose_adjacency_list[vport_id(vertex_id, i)] = set<Edge<V, P, E>, cmpEdge<V,P,E>>();
+            adjacency_list_undirected[vport_id(vertex_id, i)] = set<vport_id>();
             P portAttr =  ports_attr.empty() ? P() : ports_attr[i] ;
         }
         vport_map[vertex_id] = Vertex<V, P>(vertex_id, ports_num, attr, ports_attr);
         if(vertex_neighbors.find(vertex_id) == vertex_neighbors.end())
             vertex_neighbors[vertex_id] = map<int,bool>();
-            transpose_vertex_neighbors[vertex_id] = map<int,bool>();
+        transpose_vertex_neighbors[vertex_id] = map<int,bool>();
     }
 
     void addEdge(edge_id id, E attr = E())
@@ -335,6 +339,8 @@ public:
         adjacency_list[id.first].insert(Edge<V, P, E>(vp1, vp2, attr) );
         // add transpose Edge
         transpose_adjacency_list[id.second].insert(Edge<V, P, E>(vp2, vp1, attr));
+        adjacency_list_undirected[id.first].insert(id.second);
+        adjacency_list_undirected[id.second].insert(id.first);
         //check
         if(vertex_neighbors[id.first.first].find(id.second.first) == vertex_neighbors[id.first.first].end())
             vertex_neighbors[id.first.first].insert(pair<int,bool>(id.second.first,true));
@@ -361,11 +367,22 @@ public:
                 e.print();
     }
 
+    // get outgoing edges from vport id
     vector<edge_id> getOutgoingEdges(vport_id id) {
         auto adj_list = AdjacencyList();
         vector<edge_id> to_return;
         for(auto e : adj_list[id]) {
             to_return.push_back(e.EdgeId());
+        }
+        return to_return;
+    }
+
+    vector<edge_id> getEdges() {
+        vector<edge_id> to_return;
+        auto adj_list = AdjacencyList();
+        for (auto pr : adj_list) {
+            for (auto edge : pr.second)
+                to_return.push_back(edge.EdgeId());
         }
         return to_return;
     }
@@ -855,7 +872,7 @@ public:
     /* Return true if dest is reachable from source
        Else return false
     */
-    bool is_reachable(int source, int dest) {
+    bool is_reachable(vertex_id source, vertex_id dest) {
         BFSVertexIterator<V,P,E> itr = BFSVertexIterator<V,P,E>(this, source);
 
         for (; itr != vertexEnd(); itr = itr.next()) {
@@ -967,6 +984,50 @@ public:
         }
         return shortest_path_weight;
     }
+
+    int maxFlowAux(map<edge_id, int>& capacity_map, map<vport_id, vport_id>& previous, vport_id src, vport_id dst) {
+        previous[src] = vport_id(-1, -1); // undefined
+        queue<pair<vport_id, int>> queue1;
+        queue1.push(pair<vport_id, int>(src, std::numeric_limits<int>::max()));
+        while (!queue1.empty()) {
+            vport_id curr = queue1.front().first;
+            int curr_flow = queue1.front().second;
+            queue1.pop();
+            for (auto neighbor : adjacency_list_undirected[curr]) {
+                if (previous.count(neighbor) == 0 && capacity_map[edge_id(curr, neighbor)] != 0) {
+                    previous[neighbor] = curr;
+                    int flow = min(curr_flow, capacity_map[edge_id(curr, neighbor)]);
+                    if (neighbor == dst)
+                        return flow;
+                    queue1.push(pair<vport_id, int>(neighbor, flow));
+                }
+            }
+        }
+        return 0;
+    }
+
+    int maxFlow(CapacityFunction cf, vport_id src, vport_id dst) {
+        int max_flow = 0;
+        map<edge_id, int> capacity_map;
+        vector<edge_id> edges = getEdges();
+        for (auto edge : edges)
+            capacity_map[edge] = cf(edge);
+        map<vport_id, vport_id> previous;
+        int flow = maxFlowAux(capacity_map, previous, src, dst);
+        while (flow != 0) {
+            max_flow += flow;
+            vport_id curr = dst;
+            while (curr != src) {
+                vport_id parent = previous[curr];
+                capacity_map[edge_id(parent, curr)] -= flow;
+                capacity_map[edge_id(curr, parent)] += flow;
+                curr = parent;
+            }
+            flow = maxFlowAux(capacity_map, previous, src, dst);
+        }
+        return max_flow;
+    }
+
 
 /******************* Clique *******************/
 
@@ -1484,31 +1545,30 @@ public:
 
 #endif //PROJECT1_PORTGRAPH_H
 
-    /* TODO:
-     *  topological_sort -- DONE
-     *  strongly_connected_components -- DONE
-     *  transpose_graph -- Done
-     *  min_spanning_tree -- Done
-     *  {DFS | BFS} iterator (vports/vertices) -- DONE
-     *  is_bipartite -- DONE
-     *  induced_graph by (vports/vertices/edges) -- DONE
-     *  shortestpath(weight_function) -- DONE
-     *  findPathCost(vport, vport, cost_function) -- DONE
-     *  is_reachable(vport source, vport dest) -- DONE
-     *  findClique (vports/vertices) -- DONE
-     *  isSubGraph -- DONE
+/* TODO:
+ *  topological_sort -- DONE
+ *  strongly_connected_components -- DONE
+ *  transpose_graph -- Done
+ *  min_spanning_tree -- Done
+ *  {DFS | BFS} iterator (vports/vertices) -- DONE
+ *  is_bipartite -- DONE
+ *  induced_graph by (vports/vertices/edges) -- DONE
+ *  shortestpath(weight_function) -- DONE
+ *  findPathCost(vport, vport, cost_function) -- DONE
+ *  is_reachable(vport source, vport dest) -- DONE
+ *  findClique (vports/vertices) -- DONE
+ *  isSubGraph -- DONE
+ * is_reachable(vertex source, vertex dest) -- DONE
+ * max_flow -- DONE
 
+FERAS
+min_cut() --
 
-    FERAS
-    is_reachable(vertex source, vertex dest) --
-    max_flow --
-    min_cut() --
+MARIO
+testing -- PIW
+error handling -- PIW
+check validations -- PIW
 
-    MARIO
-    testing -- PIW
-    error handling -- PIW
-    check validations -- PIW
-
-    4 later
-    make_connected // maybe with min edges --
-    */
+4 later
+make_connected // maybe with min edges --
+*/

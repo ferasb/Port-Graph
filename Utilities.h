@@ -17,6 +17,7 @@
 #include <algorithm> // For sort
 #include <float.h>  // For DBL_MAX
 #include <queue>   // For priority_queue
+#include <limits>  // For numeric_limits<int>::max()
 using namespace std;
 
 // Forward declarations
@@ -43,6 +44,8 @@ typedef pair<vport_id, vport_id> vport_pair_id;
 
 
 typedef double (*WeightFunction)(edge_id);
+
+typedef int (*CapacityFunction)(edge_id);
 
 //For Vport DFS/BFS Iterators
 class PGVportIterator{
