@@ -99,6 +99,7 @@ void test3(){
         ids.push_back(vport_id(i,0));
         ports_num.push_back(1);
     }
+    // new
     ids.push_back(vport_id(0,1));
     ports_num[0]++;
     vector<edge_id> edges_list({edge_id(ids[0], ids[1]),
@@ -132,7 +133,7 @@ void test3(){
         s2<< curr.first << " " << curr.second<< endl;
         fprintf(stderr,s2.str().c_str());
     }
-    for(DFSVertexIterator<int,int,int> it1(&pg,0);it1 !=  pg.vertexEnd() ;++it1){
+        for(DFSVertexIterator<int,int,int> it1(&pg,0);it1 !=  pg.vertexEnd() ;++it1){
         int curr = (*it1);
         ostringstream s1;
         s1<< curr << endl;
@@ -209,7 +210,6 @@ void test4(){
     //--- isBipartite Test
     assert(pg.isBipartite(ids[0])==false);
 }
-
 
 void test5(){
     ostringstream s;
@@ -290,7 +290,7 @@ void test6(){
     vport_id dst = ids[6];
     s.str("");
     auto pth = pg.shortestPath(wf, src, dst);
-    double weight = pg.shortestPathWeight(wf, src, dst, false);
+    double weight = pg.shortestPathWeight(wf, src, dst,false);
 
     s << "shortest path weight from vport 00 to vport 60 is " << weight << "." << endl;
     s << "shortest path is: ";
@@ -303,6 +303,70 @@ void test6(){
 
 }
 
+// Clique Test
+void test7(){
+    ostringstream s;
+    s << "TEST 7" << endl;
+    s << "testing Clique - int , int ,int" << endl ;
+    fprintf(stderr, s.str().c_str());
+    vector<vport_id> ids;
+    vector<int> ports_num;
+    for(int i = 0; i < 4;i++){
+        ids.push_back(vport_id(i,0));
+        ports_num.push_back(2);
+    }
+    vector<edge_id> edges_list({edge_id(ids[0], ids[1]),
+                                edge_id(ids[0], ids[2]),
+                                edge_id(ids[0], ids[3]),
+                                edge_id(ids[1], ids[0]),
+                                edge_id(ids[1], ids[2]),
+                                edge_id(ids[1], ids[3]),
+                                edge_id(ids[2], ids[0]),
+                                edge_id(ids[2], ids[1]),
+                                edge_id(ids[2], ids[3]),
+                                edge_id(ids[3], ids[0]),
+                                edge_id(ids[3], ids[1]),
+                                edge_id(ids[3], ids[2]),
+                                edge_id(ids[4], ids[0]),
+                                edge_id(ids[4], ids[2]),
+                                edge_id(ids[4], ids[3])});
+
+    PortGraph<int, int, int> pg1 = PortGraph<int, int, int>(5, ports_num, edges_list);
+    vector<vport_id> res1 = pg1.findVportClique(4);
+    vector<int> res2 = pg1.findVertexClique(4);
+
+    int test =0;
+}
+
+// SubGraph Test - not done
+void test8() {
+    ostringstream s;
+    s << "TEST 8" << endl;
+    s << "testing isSubGraph int, int, int" << endl;
+    fprintf(stderr, s.str().c_str());
+    vector<vport_id> ids;
+    vector<int> ports_num;
+    for (int i = 0; i < 4; i++) {
+        ids.push_back(vport_id(i, 0));
+        ports_num.push_back(2);
+    }
+    vector<edge_id> edges_list({edge_id(ids[0], ids[1]),
+                                edge_id(ids[0], ids[2]),
+                                edge_id(ids[0], ids[3]),
+                                edge_id(ids[1], ids[0]),
+                                edge_id(ids[1], ids[2]),
+                                edge_id(ids[1], ids[3]),
+                                edge_id(ids[2], ids[0]),
+                                edge_id(ids[2], ids[1]),
+                                edge_id(ids[2], ids[3]),
+                                edge_id(ids[3], ids[0]),
+                                edge_id(ids[3], ids[1]),
+                                edge_id(ids[3], ids[2]),
+                                edge_id(ids[4], ids[0]),
+                                edge_id(ids[4], ids[2]),
+                                edge_id(ids[4], ids[3])});
+}
+
 int main()
 {
     //test1();
@@ -310,7 +374,9 @@ int main()
     //test3();
     //test4();
     //test5();
-    test6();
+    //test6();
+    //test7();
+    //test8();
     return 0;
 
 }

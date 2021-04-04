@@ -1,5 +1,5 @@
 //
-// Created by mario barbara on 08/03/2021.
+// Created by Mario Barbara and Feras Bisharat
 //
 
 #ifndef PROJECT1_PORTGRAPH_H
@@ -40,8 +40,6 @@ public:
         fprintf(stderr, s.str().c_str());
     }
 
-
-
 private:
 
     int port_id;
@@ -69,8 +67,31 @@ public:
             for (int i = 0; i < ports_num; i++)
                 ports.insert(pair<int,Port<P>>(i, Port<P>(i,ports_attr[i])));
         }
+        // new version
+        n_ingoing_edges = 0;
+        n_outgoing_edges = 0;
     }
 
+    // new version
+    void incOutgoingEdges(){
+        n_outgoing_edges++;
+    }
+
+    void incIngoingEdges(){
+        n_ingoing_edges++;
+    }
+
+    void decOutgoingEdges(){
+        n_outgoing_edges--;
+    }
+
+    void decIngoingEdges(){
+        n_ingoing_edges--;
+    }
+
+    int outGoingEdges(){ return n_outgoing_edges;}
+
+    int inGoingEdges(){ return n_ingoing_edges;}
 
     int vertexId() { return vertex_id; }
 
@@ -122,6 +143,8 @@ public:
 private:
     int vertex_id;
     V attribute;
+    int n_outgoing_edges;
+    int n_ingoing_edges;
 
 };
 
@@ -195,6 +218,12 @@ class DFSIterator;
 template <class V , class P , class E >
 class BFSIterator;
 
+template <class V , class P , class E >
+class DFSVertexIterator;
+
+template <class V , class P , class E >
+class BFSVertexIterator;
+
 template <class V = int, class P = int, class E = int>
 class PortGraph {
 private:
@@ -237,6 +266,7 @@ private:
     map<pair<vport_id, vport_id>, Path> shortest_paths;
 
 public:
+    // Build PortGraph with
     PortGraph() = default;
 
     PortGraph(int n_vertices, vector<int> ports_num, vector<edge_id> edges_list,
@@ -292,7 +322,7 @@ public:
         vport_map[vertex_id] = Vertex<V, P>(vertex_id, ports_num, attr, ports_attr);
         if(vertex_neighbors.find(vertex_id) == vertex_neighbors.end())
             vertex_neighbors[vertex_id] = map<int,bool>();
-        transpose_vertex_neighbors[vertex_id] = map<int,bool>();
+            transpose_vertex_neighbors[vertex_id] = map<int,bool>();
     }
 
     void addEdge(edge_id id, E attr = E())
@@ -310,6 +340,9 @@ public:
             vertex_neighbors[id.first.first].insert(pair<int,bool>(id.second.first,true));
         if(transpose_vertex_neighbors[id.second.first].find(id.first.first) == transpose_vertex_neighbors[id.second.first].end())
             transpose_vertex_neighbors[id.second.first].insert(pair<int,bool>(id.first.first, true));
+        //assume not exist
+        vport_map[id.first.first].incOutgoingEdges();
+        vport_map[id.second.first].incIngoingEdges();
     }
 
     //Print the vertcies and ports per vertex
@@ -377,7 +410,8 @@ public:
 
 /********** Strongly Connected Components **********/
 
-    void KosarajuDFS (const map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list ,vport_id id, map<vport_id,vport_id>& S, map<vport_id,int>& colorMap, int color){
+    void KosarajuDFS (const map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list
+            ,vport_id id, map<vport_id,vport_id>& S, map<vport_id,int>& colorMap, int color){
 
         colorMap[id] = color;
         for(auto edge : adj_list[id]){
@@ -538,6 +572,22 @@ public:
         for(const Edge<V,P,E>& e : adj_list[src]){
             if(e.EdgeId().second == dst)
                 return true;
+        }
+        return false;
+    }
+
+    bool isNeighbers(const int src, const int dst) {
+        const PortMap mp_src = vport_map[src].getPorts();
+        for(auto it1 = mp_src.begin(); it1 != mp_src.end();it1++){
+            //Port<P> p1 = (*it1).second;
+            vport_id id1 = vport_id(src,(*it1).second.getPortId());
+            const PortMap mp_dst = vport_map[dst].getPorts();
+            for(auto it2 = mp_dst.begin(); it2 != mp_dst.end();it2++){
+                //Port<P> p2 = (*it2).second;
+                vport_id id2 = vport_id(dst,(*it2).second.getPortId());
+                if(isNeighbers(id1, id2))
+                    return true;
+            }
         }
         return false;
     }
@@ -801,21 +851,19 @@ public:
     /* Return true if dest is reachable from source
        Else return false
     */
-    bool is_reachable(vport_id source, vport_id dest) {
-        BFSIterator<V,P,E> itr = BFSIterator<V,P,E>(this, source);
-        for (; itr != vportEnd(); itr = itr.next()) {
+    bool is_reachable(int source, int dest) {
+        BFSVertexIterator<V,P,E> itr = BFSVertexIterator<V,P,E>(this, source);
+
+        for (; itr != vertexEnd(); itr = itr.next()) {
             if (*itr == dest)
                 return true;
         }
         return false;
     }
 
-    /* Return true if dest is reachable from source
-   Else return false
-    */
-    bool is_reachable(vertex_id source, vertex_id dest) {
-        BFSVertexIterator<V,P,E> itr = BFSVertexIterator<V,P,E>(this, source);
-        for (; itr != vertexEnd(); itr = itr.next()) {
+    bool is_reachable(vport_id source, vport_id dest) {
+        BFSIterator<V,P,E> itr = BFSIterator<V,P,E>(this, source);
+        for (; itr != vportEnd(); itr = itr.next()) {
             if (*itr == dest)
                 return true;
         }
@@ -913,46 +961,88 @@ public:
         return shortest_path_weight;
     }
 
-    int maxFlow(CapacityFunction cf, vport_id src, vport_id dst){
-        int max_flow = 0;
+/******************* Clique *******************/
 
-        return max_flow;
+    bool Empty(){
+        return vport_map.empty();
     }
 
+    /// vport version of finding Clique
+    vector<vport_id> findVportClique(int k){
+        assert(k>=2);
+        vector<vport_id> res;
+        vector<vport_id> candidates;
+        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
+        for(auto it : adj_list){
+            vport_id id = it.first;
+            if(adj_list[id].size() >= k-1)
+                candidates.push_back(id);
+        }
+        findClique(candidates,res,k);
+        return res;
+    }
 
+    /// vertex version of finding Clique
+    vector<int> findVertexClique(int k){
+        assert(k>=2);
+        vector<int> res;
+        vector<int> candidates;
+        for(auto it : vport_map){
+            if(it.second.outGoingEdges() >= k-1)
+                candidates.push_back(it.first);
+        }
+        findClique(candidates,res,k);
+        return res;
+    }
 
+    template <class T>
+    bool findClique(vector<T>& candidates,vector<T>& current_set,int k){
+        if (current_set.size() == k)
+            return true;
+        if (candidates.empty())
+            return false;
+        T to_add = candidates.back();
+        candidates.pop_back();
 
+        // assume not in Clique
+        bool res1 = findClique(candidates, current_set, k);
+        if (res1)return true;
 
-    /* TODO:
-     *  topological_sort -- DONE
-     *  strongly_connected_components -- DONE
-     *  transpose_graph -- Done
-     *  min_spanning_tree -- Done
-     *  {DFS | BFS} iterator / two versions -- DONE
-     *  is_bipartite -- DONE
-     *  induced_graph by (vports/vertices/edges) -- DONE
-     *  shortestpath(weight_function) -- DONE
-     *  findPathCost(vport, vport, cost_function) -- DONE
-     *  is_reachable(vport source, vport dest) -- DONE
-     *  is_reachable(vertex source, vertex dest) -- DONE
-     *
+        //assume in clique
+        bool in_Clique = true;
+        for (T dst : current_set) {
+            in_Clique = in_Clique && this->isNeighbers(to_add, dst) && this->isNeighbers(dst, to_add);
+        }
+        if (!in_Clique) {
+            // not a solution
+            candidates.push_back(to_add);
+            return false;
+        }
+        // in Clique
+        current_set.push_back(to_add);
+        bool res2 = findClique(candidates, current_set, k);
+        if (res2) return true;
+        // not a solution
+        current_set.pop_back();
+        candidates.push_back(to_add);
+        return false;
+    }
 
-    FERAS
+/****************** SubGraph ******************/
 
-    max_flow --
-    min_cut() --
-
-    MARIO
-    findQluik --
-    is_subgraph(subgraph) --
-
-    4 later
-    make_connected // maybe with min edges --
-    */
+    bool isSubGraph(PortGraph<V,P,E>& sub_graph){
+        // vertcies
+        // edges
+        // vports
+        // attribute - vertex / port / edge
+        return true;
+    }
 
 };
 
-//DFS BY VPORT
+/********** Iterator Implementation **********/
+
+/// DFS BY VPORT
 template <class V , class P , class E >
 class DFSIterator : public PGVportIterator {
 private:
@@ -1035,7 +1125,7 @@ public:
     bool operator!= (const PGVportIterator& that)const {return !this->operator == (that) ;}
 };
 
-//DFS BY VERTEX
+/// DFS BY VERTEX
 template <class V , class P , class E >
 class DFSVertexIterator : public PGVertexIterator {
 private:
@@ -1120,7 +1210,7 @@ public:
     bool operator!= (const PGVertexIterator& that)const {return !this->operator == (that) ;}
 };
 
-//BFS BY VPORT
+/// BFS BY VPORT
 template <class V , class P , class E >
 class BFSIterator : public PGVportIterator{
 private:
@@ -1128,7 +1218,7 @@ private:
     PortGraph<V,P,E>* pg;
     map<vport_id,bool> visited;
     map<vport_id,bool> not_visited;
-    vport_id current;
+    //vport_id current;
     BFSIterator(vector<vport_id> _queue,PortGraph<V,P,E>* _pg,map<vport_id,bool>& _visited,map<vport_id,bool>& _not_visited,vport_id _current){
         queue = _queue;
         pg = _pg;
@@ -1237,7 +1327,7 @@ public:
     bool operator!= (const PGVportIterator& that)const {return !this->operator==(that);}
 };
 
-//BFS BY VERTEX
+/// BFS BY VERTEX
 template <class V , class P , class E >
 class BFSVertexIterator : public PGVertexIterator{
 private:
@@ -1245,7 +1335,7 @@ private:
     PortGraph<V,P,E>* pg;
     map<int,bool> visited;
     map<int,bool> not_visited;
-    int current;
+    //int current;
     BFSVertexIterator(vector<vport_id> _queue,PortGraph<V,P,E>* _pg,map<vport_id,bool>& _visited,map<vport_id,bool>& _not_visited,vport_id _current){
         queue = _queue;
         pg = _pg;
@@ -1353,3 +1443,33 @@ public:
 };
 
 #endif //PROJECT1_PORTGRAPH_H
+
+/********** TODO LIST **********/
+
+    /* TODO:
+     *  topological_sort -- DONE
+     *  strongly_connected_components -- DONE
+     *  transpose_graph -- Done
+     *  min_spanning_tree -- Done
+     *  {DFS | BFS} iterator (vports/vertices) -- DONE
+     *  is_bipartite -- DONE
+     *  induced_graph by (vports/vertices/edges) -- DONE
+     *  shortestpath(weight_function) -- DONE
+     *  findPathCost(vport, vport, cost_function) -- DONE
+     *  is_reachable(vport source, vport dest) -- DONE
+     *  findClique (vports/vertices) -- DONE
+     *  isSubGraph -- PIW
+
+    FERAS
+    is_reachable(vertex source, vertex dest) --
+    max_flow --
+    min_cut() --
+
+    MARIO
+    testing -- PIW
+    error handling -- PIW
+    check validations -- PIW
+
+    4 later
+    make_connected // maybe with min edges --
+    */
