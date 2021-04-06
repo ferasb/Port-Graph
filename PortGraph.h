@@ -392,7 +392,7 @@ public:
 // input: directed graph (g[u] contains the neighbors of u, nodes are named 0,1,...,|V|-1).
 // output: is g a DAG (return value), a topological ordering of g (order).
 // comment: order is valid only if g is a DAG.
-    bool topological_sort(){
+    vector<vport_id> topological_sort(){
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> adj_list = AdjacencyList();
         // compute indegree of all nodes
         map<vport_id,int> vport_indegree = map<vport_id,int>();
@@ -422,7 +422,9 @@ public:
             }
         }
         // check -
-        return vport_order.size() == adj_list.size();
+        if (vport_order.size() == adj_list.size())
+            return vport_order;
+        return vector<vport_id>();
     }
 
 /********** Strongly Connected Components **********/
@@ -520,7 +522,7 @@ private:
 //        number of nodes (n), all nodes are between 0 and n-1.
 // output: weight of a minimum spanning tree.
 public:
-    double Kruskal(double(*weightFunc)(const edge_id ,const E attr)){
+    double Kruskal(WeightFunction wf){
         int n = AdjacencyList().size();
         // (weight , edge_id)
         vector<pair<double,edge_id>> edges;
@@ -528,7 +530,7 @@ public:
         for (auto it = adj_list.begin(); it != adj_list.end(); ++it){
             set<Edge<V, P, E>,cmpEdge<V,P,E>> s_edge = (*it).second;
             for(auto e : s_edge)
-                edges.push_back(pair<double,edge_id>(weightFunc(e.EdgeId(),e.getAttribute()) ,e.EdgeId()));
+                edges.push_back(pair<double,edge_id>(wf(e.EdgeId()),e.EdgeId()));
         }
         // with weightFunc
         sort(edges.begin(), edges.end());
