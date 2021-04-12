@@ -57,7 +57,8 @@ private:
 template <class V, class P>
 class Vertex {
 public:
-    Vertex () {}
+    Vertex () {        n_ingoing_edges = 0;
+                       n_outgoing_edges = 0;}
     Vertex(int vertex_id , int ports_num , V vertex_attr = V(), PortsAttributes ports_attr = PortsAttributes())
             : vertex_id(vertex_id), attribute(vertex_attr) {
         if (ports_attr.empty()) {
@@ -339,16 +340,16 @@ public:
         // add transpose Edge
         transpose_adjacency_list[id.second].insert(Edge<V, P, E>(vp2, vp1, attr));
         //check
-        if(vertex_neighbors[id.first.first].find(id.second.first) == vertex_neighbors[id.first.first].end()){
+        if(vertex_neighbors[id.first.first].find(id.second.first) == vertex_neighbors[id.first.first].end()
+            && id.first.first != id.second.first){
+            if(transpose_vertex_neighbors[id.second.first].find(id.first.first) == transpose_vertex_neighbors[id.second.first].end()
+               && id.first.first != id.second.first){
+                transpose_vertex_neighbors[id.second.first].insert(pair<int, bool>(id.first.first, true));
+            }
             vport_map[id.first.first].incOutgoingEdges();
+            vport_map[id.second.first].incIngoingEdges();
             vertex_neighbors[id.first.first].insert(pair<int, bool>(id.second.first, true));
         }
-        //check
-        if(transpose_vertex_neighbors[id.second.first].find(id.first.first) == transpose_vertex_neighbors[id.second.first].end()){
-            vport_map[id.second.first].incIngoingEdges();
-            transpose_vertex_neighbors[id.second.first].insert(pair<int, bool>(id.first.first, true));
-        }
-        //assume not exist
     }
 
     //Print the vertcies and ports per vertex
@@ -550,10 +551,12 @@ public:
 
     vector<vport_id> getVports(){
         vector<vport_id> res;
-        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
-        for(auto it = adj_list.begin(); it != adj_list.end(); ++it) {
-            vport_id p = (*it).first;
-            res.push_back(p);
+
+        for(auto ver : vport_map){
+            for(auto p : ver.second.getPorts()) {
+                vport_id id = vport_id(ver.second.vertexId(), p.second.getPortId());
+                res.push_back(id);
+            }
         }
         return res;
     }
@@ -603,48 +606,75 @@ public:
         return false;
     }
 
-// Function returns true if graph is Bipartite, else false
-    bool isBipartite(vport_id src){
-        // if src not in graph ...
-        map<vport_id,int> colorArr;
-        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
-        for (auto it = adj_list.begin(); it != adj_list.end(); ++it) {
-            colorArr.insert(pair<vport_id, int>((*it).first,-1));
-        }
-        // Assign first color to source
+private:
+    // This function returns true if
+    // port graph is Bipartite, else false
+    bool isBipartiteUtil(vport_id src,map<vport_id,int>& colorArr){
         colorArr[src] = 1;
-        // Create a queue (FIFO) of vertex
-        // numbers and enqueue source vertex
-        // for BFS traversal
-        vector<vport_id> queue;
-        queue.push_back(src);
-        // Run while there are vertices
-        // in queue (Similar to BFS)
-        while(! queue.empty()){
-            // Dequeue a vertex from queue
-            vport_id u = queue.front();
-            queue.erase(queue.begin());
+
+        // Create a queue (FIFO) of vertex numbers a
+        // nd enqueue source vertex for BFS traversal
+        queue<vport_id> q;
+        q.push(src);
+
+        // Run while there are vertices in queue (Similar to
+        // BFS)
+        while (!q.empty()) {
+            // Dequeue a vertex from queue ( Refer
+            // http://goo.gl/35oz8 )
+            vport_id u = q.front();
+            q.pop();
+
             // Return false if there is a self-loop
-            if(isNeighbers(u,u))
+            if (isNeighbers(u,u))
                 return false;
+
             // Find all non-colored adjacent vertices
-            for (auto it = adj_list.begin(); it !=adj_list.end(); ++it){
-                vport_id v = (*it).first;
+            for (auto v : getVports()) {
                 // An edge from u to v exists and
                 // destination v is not colored
-                if(isNeighbers(u,v) && colorArr[v] == -1 ){
-                    // Assign alternate color to this adjacent v of u
-                    colorArr[v] = 1- colorArr[u];
-                    queue.push_back(v);
+                if (isNeighbers(u,v) && colorArr[v] == -1) {
+                    // Assign alternate color to this
+                    // adjacent v of u
+                    colorArr[v] = 1 - colorArr[u];
+                    q.push(v);
                 }
+
                     // An edge from u to v exists and destination
                     // v is colored with same color as u
-                else if(isNeighbers(u,v) && colorArr[v] == colorArr[u])
+                else if (isNeighbers(u,v) && colorArr[v] == colorArr[u])
                     return false;
             }
         }
-        // If we reach here, then all adjacent
-        // vertices can be colored with alternate color
+
+        // If we reach here, then all adjacent vertices can
+        // be colored with alternate color
+        return true;
+    }
+
+public:
+    // Returns true if G[][] is Bipartite, else false
+    bool isBipartite()
+    {
+        // Create a color array to store colors assigned to all
+        // veritces. Vertex/ number is used as index in this
+        // array. The value '-1' of colorArr[i] is used to
+        // ndicate that no color is assigned to vertex 'i'.
+        // The value 1 is used to indicate first color is
+        // assigned and value 0 indicates second color is
+        // assigned.
+        // if src not in graph ...
+        map<vport_id,int> colorArr;
+
+        for (auto id : getVports()) {
+            colorArr.insert(pair<vport_id, int>(id,-1));
+        }
+        // This code is to handle disconnected graoh
+        for (auto id : getVports())
+            if (colorArr[id] == -1)
+                if (! isBipartiteUtil(id,colorArr))
+                    return false;
+
         return true;
     }
 
@@ -984,48 +1014,48 @@ public:
         return shortest_path_weight;
     }
 
-    int maxFlowAux(map<edge_id, int>& capacity_map, map<vport_id, vport_id>& previous, vport_id src, vport_id dst) {
-        previous[src] = vport_id(-1, -1); // undefined
-        queue<pair<vport_id, int>> queue1;
-        queue1.push(pair<vport_id, int>(src, std::numeric_limits<int>::max()));
-        while (!queue1.empty()) {
-            vport_id curr = queue1.front().first;
-            int curr_flow = queue1.front().second;
-            queue1.pop();
-            for (auto neighbor : adjacency_list_undirected[curr]) {
-                if (previous.count(neighbor) == 0 && capacity_map[edge_id(curr, neighbor)] != 0) {
-                    previous[neighbor] = curr;
-                    int flow = min(curr_flow, capacity_map[edge_id(curr, neighbor)]);
-                    if (neighbor == dst)
-                        return flow;
-                    queue1.push(pair<vport_id, int>(neighbor, flow));
-                }
-            }
-        }
-        return 0;
-    }
+//    int maxFlowAux(map<edge_id, int>& capacity_map, map<vport_id, vport_id>& previous, vport_id src, vport_id dst) {
+//        previous[src] = vport_id(-1, -1); // undefined
+//        queue<pair<vport_id, int>> queue1;
+//        queue1.push(pair<vport_id, int>(src, std::numeric_limits<int>::max()));
+//        while (!queue1.empty()) {
+//            vport_id curr = queue1.front().first;
+//            int curr_flow = queue1.front().second;
+//            queue1.pop();
+//            for (auto neighbor : adjacency_list_undirected[curr]) {
+//                if (previous.count(neighbor) == 0 && capacity_map[edge_id(curr, neighbor)] != 0) {
+//                    previous[neighbor] = curr;
+//                    int flow = min(curr_flow, capacity_map[edge_id(curr, neighbor)]);
+//                    if (neighbor == dst)
+//                        return flow;
+//                    queue1.push(pair<vport_id, int>(neighbor, flow));
+//                }
+//            }
+//        }
+//        return 0;
+//    }
 
-    int maxFlow(CapacityFunction cf, vport_id src, vport_id dst) {
-        int max_flow = 0;
-        map<edge_id, int> capacity_map;
-        vector<edge_id> edges = getEdges();
-        for (auto edge : edges)
-            capacity_map[edge] = cf(edge);
-        map<vport_id, vport_id> previous;
-        int flow = maxFlowAux(capacity_map, previous, src, dst);
-        while (flow != 0) {
-            max_flow += flow;
-            vport_id curr = dst;
-            while (curr != src) {
-                vport_id parent = previous[curr];
-                capacity_map[edge_id(parent, curr)] -= flow;
-                capacity_map[edge_id(curr, parent)] += flow;
-                curr = parent;
-            }
-            flow = maxFlowAux(capacity_map, previous, src, dst);
-        }
-        return max_flow;
-    }
+//    int maxFlow(CapacityFunction cf, vport_id src, vport_id dst) {
+//        int max_flow = 0;
+//        map<edge_id, int> capacity_map;
+//        vector<edge_id> edges = getEdges();
+//        for (auto edge : edges)
+//            capacity_map[edge] = cf(edge);
+//        map<vport_id, vport_id> previous;
+//        int flow = maxFlowAux(capacity_map, previous, src, dst);
+//        while (flow != 0) {
+//            max_flow += flow;
+//            vport_id curr = dst;
+//            while (curr != src) {
+//                vport_id parent = previous[curr];
+//                capacity_map[edge_id(parent, curr)] -= flow;
+//                capacity_map[edge_id(curr, parent)] += flow;
+//                curr = parent;
+//            }
+//            flow = maxFlowAux(capacity_map, previous, src, dst);
+//        }
+//        return max_flow;
+//    }
 
 /******************* Clique *******************/
 
@@ -1238,7 +1268,8 @@ public:
         path.push_back(src);
         visited.insert(pair<vport_id,bool>(src,true));
         current = src;
-        for(auto p : pg->getVports()) {
+        auto x = pg->getVports();
+        for(auto p : x) {
             if(p != src)
                 not_visited.insert(pair<vport_id, bool>(p, true));
         }
@@ -1628,4 +1659,5 @@ public:
  *  min cut / max flow -- DONE
  *  Diff -- DONE
 */
+
 #endif //PORJECT_OFF_PORTGRAPH_H

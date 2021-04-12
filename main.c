@@ -2,6 +2,8 @@
 #include "PortGraph.h"
 #include "EX-DFS.h"
 #include "EX-BFS.h"
+#include "EX-MST.h"
+#include "EX-Bipartite.h"
 
 // Basic test - without Attr
 void test1(){
@@ -203,14 +205,14 @@ void test4(){
     //---MST Test
     assert(pg.Kruskal(w).first == 13.5);
     //--- isBipartite Test
-    assert(pg.isBipartite(ids[0])==true);
+    assert(pg.isBipartite()==true);
 
     //---
     //ADD edge mst=12 ,not 2 colored
     pg.addEdge(edge_id(ids[6], ids[0]),0);
     assert(pg.Kruskal(w).first == 12);
     //--- isBipartite Test
-    assert(pg.isBipartite(ids[0])==false);
+    assert(pg.isBipartite()==false);
 }
 
 void test5(){
@@ -515,5 +517,7 @@ int main()
     /// example tests
     //PG_DFS();
     //PG_BFS();
+    //PG_MST();
+    //PG_BIPARTITE();
     return 0;
 }
