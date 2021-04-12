@@ -1,5 +1,7 @@
 #include <iostream>
 #include "PortGraph.h"
+#include "EX-DFS.h"
+#include "EX-BFS.h"
 
 // Basic test - without Attr
 void test1(){
@@ -133,7 +135,7 @@ void test3(){
         s2<< curr.first << " " << curr.second<< endl;
         fprintf(stderr,s2.str().c_str());
     }
-        for(DFSVertexIterator<int,int,int> it1(&pg,0);it1 !=  pg.vertexEnd() ;++it1){
+    for(DFSVertexIterator<int,int,int> it1(&pg,0);it1 !=  pg.vertexEnd() ;it1++){
         int curr = (*it1);
         ostringstream s1;
         s1<< curr << endl;
@@ -199,14 +201,14 @@ void test4(){
         fprintf(stderr,s2.str().c_str());
     }
     //---MST Test
-    assert(pg.Kruskal(w) == 13.5);
+    assert(pg.Kruskal(w).first == 13.5);
     //--- isBipartite Test
     assert(pg.isBipartite(ids[0])==true);
 
     //---
     //ADD edge mst=12 ,not 2 colored
     pg.addEdge(edge_id(ids[6], ids[0]),0);
-    assert(pg.Kruskal(w) == 12);
+    assert(pg.Kruskal(w).first == 12);
     //--- isBipartite Test
     assert(pg.isBipartite(ids[0])==false);
 }
@@ -246,10 +248,12 @@ void test5(){
     reach00_50 = pg.is_reachable(vport_id(0,0), vport_id(5,0));
     reach00_10 = pg.is_reachable(vport_id(0,0), vport_id(1,0));
     reach80_00 = pg.is_reachable(vport_id(8,0), vport_id(0,0));
+    bool reach8_0 = pg.is_reachable(8,0);
 
     s << "reach00_50 is " << (reach00_50? "true" : "false") << endl;
     s << "reach00_10 is " << (reach00_10? "true" : "false") << endl;
     s << "reach80_00 is " << (reach80_00? "true" : "false") << endl;
+    s << "reach8_0 is " << (reach8_0? "true" : "false") << endl;
     fprintf(stderr, s.str().c_str());
 
 }
@@ -332,7 +336,7 @@ void test7(){
                                 edge_id(ids[4], ids[3])});
 
     PortGraph<int, int, int> pg1 = PortGraph<int, int, int>(5, ports_num, edges_list);
-    vector<vport_id> res1 = pg1.findVportClique(4);
+    auto res1 = pg1.findVportClique(4);
     vector<int> res2 = pg1.findVertexClique(4);
 
     int test =0;
@@ -368,47 +372,137 @@ void test8() {
 }
 
 void test9(){
+    typedef enum{blue,green,black,yellow,light_blue,red,white} color;
     ostringstream s;
-    s << "TEST 6" << endl;
-    s << "testing max flow - int , int ,int" << endl ;
+    s << "TEST 9 - complex" << endl;
+    s << "testing isSubGraph color, color, color" << endl;
     fprintf(stderr, s.str().c_str());
-    vector<vport_id> ids;
-    vector<int> ports_num;
-    for(int i = 0; i < 12;i++){
-        ids.push_back(vport_id(i,0));
-        ports_num.push_back(1);
+    //done
+    int n_vertex = 16;
+    //done
+    vector<int> ports_num = {3,4,2,5,4,2,5,4};
+    //done
+    vector<color> vertex_attr = {blue,blue,green,green,green,green,green,green};
+    for(int i = 8 ; i < 16 ;i++) {
+        vertex_attr.push_back(black);
+        ports_num.push_back(2);
     }
-    vector<edge_id> edges_list({edge_id(ids[0], ids[2]),
-                                edge_id(ids[0], ids[4]),
-                                edge_id(ids[0], ids[3]),
-                                edge_id(ids[2], ids[5]),
-                                edge_id(ids[2], ids[1]),
-                                edge_id(ids[4], ids[7]),
-                                edge_id(ids[4], ids[11]),
-                                edge_id(ids[1], ids[9]),
-                                edge_id(ids[1], ids[10]),
-                                edge_id(ids[7], ids[10]),
-                                edge_id(ids[9], ids[6]),
-                                edge_id(ids[10], ids[6]),
-                                edge_id(ids[11], ids[8]),
-                                edge_id(ids[0], ids[8])});
+    // done
+    vector<vport_id> ids;
+    // dene
+    vector<vector<string>> vports_atrr;
+    for(int i = 0; i<16;i++){
+        vector<string> temp ;
+        for(int z = 0 ;z < ports_num[i];z++) {
+            ids.push_back(vport_id(i, z));
+            string attr = "";
+            if(i < 2)
+                attr = "subnet - " + to_string(i) + " :: " + to_string(z);
+            if(i<8)
+                attr = "router - " + to_string(i-2) + " :: " + to_string(z);
+            else
+                attr = "host - " + to_string(i-8) + " :: " + to_string(z);
+            temp.push_back(attr);
+        }
+        vports_atrr.push_back(temp);
+    }
+    vector<edge_id> edges = {edge_id(vport_id(0,0),vport_id(2,0)),
+                             edge_id(vport_id(0,1),vport_id(3,0)),
+                             edge_id(vport_id(0,2),vport_id(4,0)),
+                             edge_id(vport_id(1,0),vport_id(2,0)),
+                             edge_id(vport_id(1,1),vport_id(4,3)),
+                             edge_id(vport_id(1,2),vport_id(6,0)),
+                             edge_id(vport_id(7,0),vport_id(1,3)),
+                             edge_id(vport_id(2,1),vport_id(3,1)),
+                             edge_id(vport_id(3,4),vport_id(4,1)),
+                             edge_id(vport_id(4,2),vport_id(5,0)),
+                             edge_id(vport_id(5,1),vport_id(6,1)),
+                             edge_id(vport_id(6,4),vport_id(7,1)),
+                             edge_id(vport_id(3,2),vport_id(8,0)),
+                             edge_id(vport_id(3,2),vport_id(8,1)),
+                             edge_id(vport_id(3,2),vport_id(9,0)),
+                             edge_id(vport_id(3,2),vport_id(9,1)),
+                             edge_id(vport_id(8,0),vport_id(3,3)),
+                             edge_id(vport_id(8,1),vport_id(3,3)),
+                             edge_id(vport_id(9,0),vport_id(3,3)),
+                             edge_id(vport_id(9,1),vport_id(3,3)),
+                             edge_id(vport_id(6,3),vport_id(10,0)),
+                             edge_id(vport_id(6,3),vport_id(10,1)),
+                             edge_id(vport_id(6,3),vport_id(11,0)),
+                             edge_id(vport_id(6,3),vport_id(11,1)),
+                             edge_id(vport_id(6,3),vport_id(12,0)),
+                             edge_id(vport_id(6,3),vport_id(12,1)),
+                             edge_id(vport_id(10,0),vport_id(6,2)),
+                             edge_id(vport_id(10,1),vport_id(6,2)),
+                             edge_id(vport_id(11,0),vport_id(6,2)),
+                             edge_id(vport_id(11,1),vport_id(6,2)),
+                             edge_id(vport_id(12,0),vport_id(6,2)),
+                             edge_id(vport_id(12,1),vport_id(6,2)),
+                             edge_id(vport_id(7,3),vport_id(13,0)),
+                             edge_id(vport_id(7,3),vport_id(13,1)),
+                             edge_id(vport_id(7,3),vport_id(14,0)),
+                             edge_id(vport_id(7,3),vport_id(14,1)),
+                             edge_id(vport_id(7,3),vport_id(15,0)),
+                             edge_id(vport_id(7,3),vport_id(15,1)),
+                             edge_id(vport_id(13,0),vport_id(7,2)),
+                             edge_id(vport_id(13,1),vport_id(7,2)),
+                             edge_id(vport_id(14,0),vport_id(7,2)),
+                             edge_id(vport_id(14,1),vport_id(7,2)),
+                             edge_id(vport_id(15,0),vport_id(7,2)),
+                             edge_id(vport_id(15,1),vport_id(7,2)),
+    };
 
-    vector<double> edgeAttr({0,0,0,5,1.5,1.5,1,2,1,0.5,1,1,2.5,0});
-    PortGraph<int, int, double> pg = PortGraph<int, int, double >(12, ports_num, edges_list,vector<int>(),vector<vector<int>>(),edgeAttr);
-
-    WeightFunction wf = f;
-    vport_id src = ids[0];
-    vport_id dst = ids[8];
-    s.str("");
-    int flow = pg.maxFlow(g, src, dst);
-
-    s << "flow from vport 00 to vport 60 is " << flow << "." << endl;
-    fprintf(stderr, s.str().c_str());
-
+    vector<color> edge_attr = {blue,
+                               blue,
+                               blue,
+                               blue,
+                               blue,
+                               blue,
+                               blue,
+                               red,
+                               red,
+                               red,
+                               red,
+                               red,
+                               light_blue,
+                               light_blue,
+                               light_blue,
+                               light_blue,
+                               yellow,
+                               yellow,
+                               yellow,
+                               yellow,
+                               light_blue,
+                               light_blue,
+                               light_blue,
+                               light_blue,
+                               light_blue,
+                               light_blue,
+                               yellow,
+                               yellow,
+                               yellow,
+                               yellow,
+                               yellow,
+                               yellow,
+                               light_blue,
+                               light_blue,
+                               light_blue,
+                               light_blue,
+                               light_blue,
+                               light_blue,
+                               yellow,
+                               yellow,
+                               yellow,
+                               yellow,
+                               yellow,
+                               yellow,
+    };
+    PortGraph<color,string,color> pg = PortGraph<color,string,color>(n_vertex,ports_num,edges,vertex_attr,vports_atrr,edge_attr);
 }
 
 int main()
 {
+    /// Basic Tests
     //test1();
     //test2();
     //test3();
@@ -418,6 +512,8 @@ int main()
     //test7();
     //test8();
     //test9();
+    /// example tests
+    //PG_DFS();
+    //PG_BFS();
     return 0;
-
 }

@@ -1,9 +1,7 @@
-//
-// Created by mario barbara on 08/03/2021.
-//
+#ifndef PORJECT_OFF_UTILITIES_H
+#define PORJECT_OFF_UTILITIES_H
 
-#ifndef PROJECT1_UTILITIES_H
-#define PROJECT1_UTILITIES_H
+
 #include <utility>
 #include <set>
 #include <vector>
@@ -42,6 +40,7 @@ typedef pair<vport_id, vport_id> edge_id;
 
 typedef pair<vport_id, vport_id> vport_pair_id;
 
+typedef int vertex_id;
 
 typedef double (*WeightFunction)(edge_id);
 
@@ -79,4 +78,5 @@ public:
 #define VerticesAttributes vector<V>
 #define PortsAttributes vector<P>
 #define EdgesAttributes vector<E>
-#endif //PROJECT1_UTILITIES_H
+
+#endif //PORJECT_OFF_UTILITIES_H
