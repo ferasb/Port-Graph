@@ -185,12 +185,12 @@ public:
 
     void print() {
         ostringstream s = toString();
-        fprintf(stderr, s.str().c_str());
+        fprintf(stdout, s.str().c_str());
     }
 
     void printIds() {
         ostringstream s = toStringIds();
-        fprintf(stderr, s.str().c_str());
+        fprintf(stdout, s.str().c_str());
     }
 
 private:
@@ -362,10 +362,18 @@ public:
 
     //Print the edges
     void PrintEdges() {
-
-        for (auto it = adjacency_list.begin(); it != adjacency_list.end(); ++it)
+        auto adj_list = AdjacencyList();
+        for (auto it = adj_list.begin(); it != adj_list.end(); ++it)
             for(auto e : (*it).second)
                 e.print();
+    }
+
+    //Print the edges without attributes
+    void PrintEdgesIds() {
+        auto adj_list = AdjacencyList();
+        for (auto it = adj_list.begin(); it != adj_list.end(); ++it)
+            for(auto e : (*it).second)
+                e.printIds();
     }
 
     vector<edge_id> getOutgoingEdges(vport_id id) {
@@ -901,7 +909,7 @@ public:
     /* Return true if dest is reachable from source
    Else return false
 */
-    bool is_reachable(vertex_id source, vertex_id dest) {
+    bool isReachable(vertex_id source, vertex_id dest) {
         BFSVertexIterator<V,P,E> itr = BFSVertexIterator<V,P,E>(this, source);
 
         for (; itr != vertexEnd(); itr = itr.next()) {
@@ -914,7 +922,7 @@ public:
     /* Return true if dest is reachable from source
        Else return false
     */
-    bool is_reachable(vport_id source, vport_id dest) {
+    bool isReachable(vport_id source, vport_id dest) {
         BFSIterator<V,P,E> itr = BFSIterator<V,P,E>(this, source);
         for (; itr != vportEnd(); itr = itr.next()) {
             if (*itr == dest)
@@ -1653,7 +1661,7 @@ public:
  *  induced_graph by (vports/vertices/edges) -- DONE
  *  shortestpath(weight_function) -- DONE
  *  findPathCost(vport, vport, cost_function) -- DONE
- *  is_reachable(vport source, vport dest) -- DONE
+ *  isReachable(vport source, vport dest) -- DONE
  *  findClique (vports/vertices) -- DONE
  *  isSubGraph -- DONE
  *  min cut / max flow -- DONE
