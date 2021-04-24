@@ -4,6 +4,8 @@
 #include "EX-BFS.h"
 #include "EX-MST.h"
 #include "EX-Bipartite.h"
+#include "EX-InducedGraph.h"
+#include "EX-SubGraph.h"
 
 // Basic test - without Attr
 void test1(){
@@ -296,7 +298,7 @@ void test6(){
     vport_id dst = ids[6];
     s.str("");
     auto pth = pg.shortestPath(wf, src, dst);
-    double weight = pg.shortestPathWeight(wf, src, dst, false);
+    double weight = pg.shortestPathWeight(wf, src, dst,false);
 
     s << "shortest path weight from vport 00 to vport 60 is " << weight << "." << endl;
     s << "shortest path is: ";
@@ -519,5 +521,7 @@ int main()
     //PG_BFS();
     //PG_MST();
     //PG_BIPARTITE();
+    //PG_InducedGraph();
+    //PG_SubGraph();
     return 0;
 }
