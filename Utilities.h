@@ -1,6 +1,7 @@
 #ifndef PORJECT_OFF_UTILITIES_H
 #define PORJECT_OFF_UTILITIES_H
 
+
 #include <utility>
 #include <set>
 #include <vector>
@@ -27,13 +28,9 @@ class Port;
 template <class V = int, class P = int, class E = int>
 class Edge;
 
-#define vport pair<Vertex<V, P>, Port<P> >
+#define vport pair<Vertex<V, P>, Port<P>>
 
 typedef pair<int, int> vport_id;
-
-#define END_VPORT vport_id(-1,-1)
-
-#define END_VERTEX -1
 
 typedef pair<vport_id, vport_id> edge_id;
 
@@ -47,6 +44,7 @@ typedef int (*CapacityFunction)(edge_id);
 
 //For Vport DFS/BFS Iterators
 class PGVportIterator{
+    const vport_id END_VPORT = vport_id(-1,-1);
 public:
     vport_id current;
     PGVportIterator()= default;
@@ -59,8 +57,9 @@ public:
 
 };
 
-//For Vport DFS/BFS Iterators
+//For Vertex DFS/BFS Iterators
 class PGVertexIterator{
+    const int END_VERTEX = -1;
 public:
     int current;
     PGVertexIterator()= default;
@@ -73,7 +72,7 @@ public:
 
 };
 
-vector<string> split (string& s, string delimiter) {
+vector<string> split (string& s, string& delimiter) {
     size_t pos_start = 0, pos_end, delim_len = delimiter.length();
     string token;
     vector<string> res;

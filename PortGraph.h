@@ -8,33 +8,51 @@
 #include "Utilities.h"
 using namespace std;
 
+/**************** Port class *****************/
+/**
+    includes :
+     int port_id - the id for the port which is unique per port
+     P attribute - the attribute for the port of type "P"
+    Port Class requires the class P to have :
+     1) default constructor
+     2) copy constructor
+    Port Class methods :
+     1) getPortId : gets port id
+     2) getAttribute : gets port attribute
+     3) print : prints the info of the Port
+ **/
 template <class P>
-#define PortMap map<int,Port<P>>
-//struct cmpPort{
-//    bool operator () (const Port<P>& a,const Port<P>& b){
-//        return a.getPortId() < b.getPortId() ;
-//    }
-//};
-
 class Port{
 public:
-
+    /* Port Class constructor , create new port with 'portId' id and 'attr' attribute */
     explicit Port(int portId = -1, P attr = P()) : port_id(portId) , attribute(attr) {}
 
-    int getPortId() const { return port_id; }
+    /* returns the id of 'this' Port */
+    int getPortId() { return port_id; }
 
+    /*returns the attribute of 'this' Port */
     P getAttribute()  { return attribute; }
 
-    bool operator==(const Port& p) { return p.getPortId() == port_id; }
+    /* Comparison operator of 'Port' Class
+      - two 'Port' are equal if and only if there id's are the same
+    */
+    bool operator==(const Port& that) { return that.getPortId() == port_id; }
 
-    bool operator<(const Port& p){
-        return this->port_id < p.getPortId();
+    /* Smaller operator of 'Port' Class
+      - this 'Port' is smaller if the only if 'this' id is smaller the 'that' id
+    */
+    bool operator<(const Port& that){
+        return this->port_id < that.getPortId();
     }
 
+    /* assign new attribute value for 'this' port */
     void setAttribute(P& attr){
         attribute = attr;
     }
 
+    /* print method for Port Class , prints fields in the following format
+        Port <Port id> with attribute <Port's attribute>
+    */
     void print(){
         ostringstream s;
         s << "Port " << port_id << " with attribute " << attribute << endl;
@@ -42,23 +60,52 @@ public:
     }
 
 private:
-
     int port_id;
     P attribute;
 };
+/**********************************************/
 
-//template <class V, class P>
-//    struct cmpVertex{
-//        bool operator () (const int& a,const int& b) const{
-//            return a < b ;
-//        }
-//    };
-
+/**************** Vertex class ****************/
+/**
+    includes :
+      1) int vertex_i - the id for the vertex which is unique per vertex
+      2) V attribute - the attribute for the vertex of type "V"
+      3) int n_outgoing_edges - number of out going edges for this vertex , dosen't count multi-edges between vertecies
+      4) int n_ingoing_edges - number of in going edges to this vertex , dosen't count multi-edges between vertecies
+      5) PortMap ports - maping from port id to port Class that has the same id,the ports aren't unique per vertex and can be shared
+    Vertex Class requires the class P to have :
+      1) default constructor
+      2) copy constructor
+    Vertex Class requires the class V to have :
+      1) default constructor
+      2) copy constructor
+    Vertex Class methods :
+      1) incOut/Ingoing edges
+      2) decOut/Ingoing edges
+      3) vertexId
+      4) getAttribute
+      5) getPorts
+      6) getPortsNum
+      7) getPort
+      8) addPortAttr
+      9) print
+ **/
 template <class V, class P>
+#define PortMap map<int,Port<P>>
 class Vertex {
 public:
-    Vertex () {        n_ingoing_edges = 0;
-                       n_outgoing_edges = 0;}
+
+    /* Vertex Class defualt constructor only init  n_ingoing_edges and  n_outgoing_edges to zero */
+    Vertex () {
+        n_ingoing_edges = 0;
+        n_outgoing_edges = 0;
+    }
+
+    /* Vertex Class constuctor , creates new vertex
+      with vertex id and vertex_attr , init ports_num 'ports' with ascending id starting form 0 , init the ith port
+      with the  attribute ith attribute in ports_attr array if present,
+      else uses the defualt constructor and maps them accordingly
+    */
     Vertex(int vertex_id , int ports_num , V vertex_attr = V(), PortsAttributes ports_attr = PortsAttributes())
             : vertex_id(vertex_id), attribute(vertex_attr) {
         if (ports_attr.empty()) {
@@ -74,102 +121,172 @@ public:
         n_outgoing_edges = 0;
     }
 
-    // new version
+    /* increasing the number of out going edges only when adding a new out going edge to 'this' vertex
+       - NOT including multi edges
+    */
     void incOutgoingEdges(){
         n_outgoing_edges++;
     }
 
+    /* increasing the number of in going edges only when adding a new in going edge to 'this' vertex
+     - NOT including multi edges
+    */
     void incIngoingEdges(){
         n_ingoing_edges++;
     }
 
+    /* decreasing the number of out going edges only when removing the last out going ede to 'this' edge*/
     void decOutgoingEdges(){
-        n_outgoing_edges--;
+        if(n_outgoing_edges >0)
+            n_outgoing_edges--;
     }
 
+    /* decreasing the number of in going edges only when removing the last in going ede to 'this' edge*/
     void decIngoingEdges(){
-        n_ingoing_edges--;
+        if(n_ingoing_edges >0)
+            n_ingoing_edges--;
     }
 
+    /* returns the number of out going edges from 'this' vertex */
     int outGoingEdges(){ return n_outgoing_edges;}
 
+    /* returns the number of in going edges to 'this' vertex */
     int inGoingEdges(){ return n_ingoing_edges;}
 
+    /* retruns the id of 'this' vertex :- vectex_id */
     int vertexId() { return vertex_id; }
 
+    /* retruns the attribute of 'this' vertex :- attribute */
     V getAttribute() { return attribute; }
 
+    /* return a map of type <int,Port> that maps the ports id to the corresponding Port Class */
     PortMap getPorts() { return ports; }
 
+    /* returns the number of ports that 'this' vertex has */
     int getPortsNum() { return ports.size(); }
 
-    bool operator==(Vertex v) { return v.vertexId() == vertex_id; }
+    /* Comparison operator of 'Vertex' Class
+       - two 'Vetex' are equal if and only if there id's are the same
+    */
+    bool operator==(Vertex that_v) { return that_v.vertexId() == vertex_id; }
 
-    bool operator<(Vertex v){
-        return  v.vertexId() > vertex_id;
+    /* Samller operator of 'Vertex' Class
+       - this 'Vertex' is smaller if the only if 'this' id is smaller the 'that' id
+    */
+    bool operator<(Vertex that_v){
+        return  that_v.vertexId() > vertex_id;
     }
 
-    Port<P> getPort(const int port_id){
+    /* returns 'port' Class with port_id id if present else error */
+    Port<P> getPort(int port_id){
         //check -
         return ports[port_id];
     }
 
+    /* assgin 'this' vertex a new vertex_id with id */
     void setVertexId(int id){
         vertex_id = id;
     }
 
+    /* assgin 'this' vertex a new attribute with attr */
     void setAttribute(V attr){
         attribute = attr;
     }
 
-    void addPortAttr(int port_id,P attr){
+    /* adds a new port with port_id id and attr attribute to 'this' vertex if not present
+       else updates a new attribute to the corresponding port with "port_id" id
+    */
+    void addPortWithAttr(int port_id,P attr){
         Port<P> p = Port<P>(port_id, attr);
         ports[port_id] = p;
     }
 
+    /* print method for Vertex Class , prints fields in the following format :
+       vertex <Vertex_id> with attribute <Vertex's attribute> with <vertex's port number>
+       and Foreach port "in" this vertex prints :
+       Port <Port id> with attribute <Port's attribute>
+    */
     void print() {
         ostringstream s;
-        s << "Vertrex " << vertex_id << " with attribute " << attribute << ", with " << ports.size() << " ports." << endl;
-        s << "Vertrex " << vertex_id << " with Ports  : " << endl ;
+        s << "Vertex " << vertex_id << " with attribute " << attribute << ", with " << ports.size() << " ports." << endl;
+        s << "Vertex " << vertex_id << " with Ports  : " << endl ;
         fprintf(stderr, s.str().c_str());
         for (auto p : ports)
             p.second.print();
     }
 
-//    Vertex<V,P>& operator=(Vertex<V,P> const &a){
-//        this->vertex_id = a.vertexId();
-//        this->attribute = a.getAttribute();
-//        this->ports = a.getPorts();
-//   }
-    PortMap ports;
+    /* removes the port with "port_id" id if present Else no changes happens */
+    void removePort(int port_id){
+        if(ports.find(port_id) == ports.end())
+            return;
+        ports.erase(ports[port_id]);
+    }
+
 private:
     int vertex_id;
     V attribute;
     int n_outgoing_edges;
     int n_ingoing_edges;
-
+    PortMap ports;
 };
+/*********************************************/
 
+
+/**************** Edge class ****************/
+/**
+    includes :
+      1)vport source - the sourse of 'this edge
+      2)vport dest - the destination of 'this' edge
+      3)edge_id id - the id of 'this' edge
+      4)E attribute - the attribute of 'this' edge
+    Edge Class requires the class P to have :
+      1) default constructor
+      2) copy constructor
+    Edge Class requires the class V to have :
+      1) default constructor
+      2) copy constructor
+    Edge Class requires the class E to have :
+      1) default constructor
+      2) copy constructor
+    Edge Class methods :
+      1) getSource
+      2) getDest
+      3) EdgeId
+      4) getAttribute
+      5) printIds
+ **/
 template <class V, class P, class E>
 class Edge {
 public:
+
+    /*Edge Class defualt constructor*/
     Edge() = default ;
+
+    /*Edge Class constructor , init new directed 'edge' from src to dst with optional attribute att */
     Edge(vport src , vport dst , E attr = E()): source(src), dest(dst), attribute(attr) {
         vport_id p1 = std::make_pair(src.first.vertexId(),src.second.getPortId());
         vport_id p2 = std::make_pair(dst.first.vertexId(),dst.second.getPortId());
         id = std::make_pair(p1, p2) ;
     }
 
+    /* return the vport source of 'this' edge - vertex and port*/
     vport getSource() { return source; }
 
+    /* return the vport destination of 'this' edge - vertex and port*/
     vport getDest() { return dest; }
 
-    edge_id EdgeId() const { return id; }
+    /* returns the edge id*/
+    edge_id EdgeId() { return id; }
 
+    /* Comparison operator of 'Edge' Class
+       - two 'Port' are equal if and only if there id's are the same
+    */
     bool operator==(Edge e) { return e.id == id; }
 
+    /* return the attribute of 'this' edge*/
     E getAttribute() { return attribute; }
 
+protected:
     ostringstream toString() {
         ostringstream s;
         s << "Edge (" << id.first.first << ", " << id.first.second << ") " << "-- (" << id.second.first << ", " << id.second.second << ") " ;
@@ -183,6 +300,10 @@ public:
         return s;
     }
 
+public:
+    /* print method for Edge Class , prints fields in the following format :
+       Edge <source vport> <destination vport> with attribute <Edge's attribute>
+    */
     void print() {
         ostringstream s = toString();
         fprintf(stdout, s.str().c_str());
@@ -196,24 +317,35 @@ public:
 private:
     vport source;
     vport dest;
-    edge_id id; // if ther is a problrm with the COMP make the feiled public
+    edge_id id;
     E attribute;
 };
+/**********************************************/
 
+/** vport is a pair of <Vertex Class> and <Port Class> **/
+/** this vport is smaller than that vport only and only if
+    this vertex id is smaller than that vertex id OR
+    both vertecies are EQUAL and this port id is smaller than that port id
+**/
 struct cmpVport {
     bool operator()(const vport_id& a,const vport_id& b) const  {
         return (a.first < b.first) || (a.first == b.first && a.second < b.second);
     }
 };
+/**********************************************/
 
+/** this edge is smaller than that edge only and only if
+    this edge id is smaller than that edge id
+**/
 template <class V = int, class P = int, class E = int>
 struct cmpEdge {
-    // check-
     bool operator()(const Edge<V, P, E>& a,const Edge<V, P, E>& b) const {
         return a.EdgeId() < b.EdgeId() ;
     }
 };
+/*************************************************/
 
+/* Forward declarations */
 template <class V , class P , class E >
 class DFSIterator;
 
@@ -226,17 +358,38 @@ class DFSVertexIterator;
 template <class V , class P , class E >
 class BFSVertexIterator;
 
+
+/**************************************************/
+
+/**************** Port Graph class ****************/
+/**
+    includes :
+      1) map adjacency_list for vports and it's reverse
+      2) bool is_transpose : true if the graph is reversed Else false
+      3) map vport_map : maps vport id to vports
+      4) map vertex_neighbors for vertecies and it's reverse
+      4) map shortest_paths and shortest_paths_weights : maps the path from 'src' to 'dst' and it's weight
+    PortGraph Class requires the class P to have :
+      1) default constructor
+      2) copy constructor
+    PortGraph Class requires the class V to have :
+      1) default constructor
+      2) copy constructor
+    PortGraph Class requires the class E to have :
+      1) default constructor
+      2) copy constructor
+ **/
 template <class V = int, class P = int, class E = int>
 class PortGraph {
 private:
 
     // maps vport vp (vertix and port) to all the edges that has an vp as a source
     map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> adjacency_list;
-    // maps vport vp (vertix and port) to all the transpose edges that has an vp as a source
-    map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> transpose_adjacency_list;
+    // maps vport vp (vertix and port) to all the reverse edges that has an vp as a source
+    map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> backwards_adjacency_list;
 
-    // flag for the transpose Graph
-    bool is_transpose ;
+    // flag for the reverse Graph
+    bool is_reversed ;
 
     // maps vport_id (vertix and port) to its vport
     // vertex id -> vertex
@@ -245,51 +398,62 @@ private:
 
     //maps vertex_id -> neighbor vertices
     map<int,map<int,bool>> vertex_neighbors;
-    //maps vertex_id -> neighbors vertices of the transpose graph
-    map<int,map<int,bool>> transpose_vertex_neighbors;
+    //maps vertex_id -> neighbors vertices of the reverse graph
+    map<int,map<int,bool>> reverse_vertex_neighbors;
 
     // params for SCC
     const int UNSEEN = -1;
     const int SEEN = 1;
 
-    // for Algo's in case of transpose
+    // for Algo's in case of reverse
     map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& AdjacencyList(){
-        return is_transpose ? transpose_adjacency_list : adjacency_list ;
+        return is_reversed ? backwards_adjacency_list : adjacency_list ;
     }
 
-    // for Algo's in case of transpose
+    // for Algo's in case of reverse
     map<int,map<int,bool>>& VertexNeighbors(){
-        return is_transpose ? transpose_vertex_neighbors : vertex_neighbors ;
+        return is_reversed ? reverse_vertex_neighbors : vertex_neighbors ;
     }
 
     // for shortest paths
     typedef vector<edge_id> Path;
     map<pair<vport_id, vport_id>, double> shortest_paths_weights;
     map<pair<vport_id, vport_id>, Path> shortest_paths;
+    const vport_id  END_VPORT = vport_id(-1,-1);
+    const int  END_VERTEX = -1;
 
 public:
-    // Build PortGraph with
+
+    /* Port graph defualt constructor - empty graph */
     PortGraph() = default;
 
+    /* create new Port Graph and consder it reversed or not if 'isReversed' false or Not*/
+    PortGraph(bool isReversed) :is_reversed(isReversed) {}
+
+    /* init new port graph with n_vertices vertices which the ith vertex has verticesAttributes[ith] attribute
+       and ports_num[ith] ports ,each kth port has portsAttributes[ith][kth] attribute .
+       Foreach ith_edge in edges_list :
+       init new edges with edgesAttributes[ith_edge] attribute
+    */
     PortGraph(int n_vertices, vector<int> ports_num, vector<edge_id> edges_list,
               VerticesAttributes verticesAttributes =  VerticesAttributes(),
               vector<PortsAttributes> portsAttributes = vector<PortsAttributes>(),
               EdgesAttributes edgesAttributes = EdgesAttributes())
     {
-        is_transpose = false;
+        is_reversed = false;
         for (int i = 0; i < n_vertices; ++i) {
             if(verticesAttributes.empty() && portsAttributes .empty())
-                addVertix(i, ports_num[i]);
+                addVertex(i, ports_num[i]);
             else if(portsAttributes .empty())
-                addVertix(i, ports_num[i],verticesAttributes[i]);
+                addVertex(i, ports_num[i],verticesAttributes[i]);
             else if(verticesAttributes.empty())
-                addVertix(i, ports_num[i],V(),portsAttributes[i]);
+                addVertex(i, ports_num[i],V(),portsAttributes[i]);
             else {
-                addVertix(i, ports_num[i],verticesAttributes[i],portsAttributes[i]);
+                addVertex(i, ports_num[i],verticesAttributes[i],portsAttributes[i]);
             }
         }
 
-        //add transpose edge
+        //add reverse edge
         for (int i = 0; i < edges_list.size(); ++i) {
             if(edgesAttributes.empty())
                 addEdge(edges_list[i]);
@@ -300,33 +464,46 @@ public:
 
     }
 
-    void transposeGraph(){
+    /* reverse every directed edge and
+       reverse each vertex neighbor
+    */
+    void reverseGraph(){
         //check
-        is_transpose = !is_transpose;
+        is_reversed = !is_reversed;
+        auto tmp1 = adjacency_list;
+        adjacency_list = backwards_adjacency_list;
+        backwards_adjacency_list = tmp1;
+        auto tmp2 = vertex_neighbors;
+        vertex_neighbors = backwards_adjacency_list;
+        backwards_adjacency_list = tmp2;
     }
 
-    bool isTranspose(){
-        return is_transpose;
+    /* True if the graph is reversed Else False */
+    bool isReversed(){
+        return is_reversed;
     }
 
-    void setTranspose(bool _is_transpose){
-        is_transpose = _is_transpose;
-    }
-
-    void addVertix(int vertex_id, int ports_num, V attr = V(), PortsAttributes ports_attr = PortsAttributes())
+    /* add new vertex with 'vertex_id' id and 'ports_num' port with 'attr' attribute
+       the ith port has the ports_attr[ith] attribute if present
+       Else the port has the defualt value
+    */
+    void addVertex(int vertex_id, int ports_num, V attr = V(), PortsAttributes ports_attr = PortsAttributes())
     {
         for (int i = 0; i < ports_num; ++i) {
             adjacency_list[vport_id(vertex_id, i)] = set<Edge<V, P, E>, cmpEdge<V,P,E>>();
-            // transpose Graph
-            transpose_adjacency_list[vport_id(vertex_id, i)] = set<Edge<V, P, E>, cmpEdge<V,P,E>>();
+            // reverse Graph
+            backwards_adjacency_list[vport_id(vertex_id, i)] = set<Edge<V, P, E>, cmpEdge<V,P,E>>();
             P portAttr =  ports_attr.empty() ? P() : ports_attr[i] ;
         }
         vport_map[vertex_id] = Vertex<V, P>(vertex_id, ports_num, attr, ports_attr);
         if(vertex_neighbors.find(vertex_id) == vertex_neighbors.end())
             vertex_neighbors[vertex_id] = map<int,bool>();
-        transpose_vertex_neighbors[vertex_id] = map<int,bool>();
+        reverse_vertex_neighbors[vertex_id] = map<int,bool>();
     }
 
+    /* add new edge with id == <src,dst> with 'attr' attibute if Not present
+       Else updates the Edge attribute with 'attr'
+    */
     void addEdge(edge_id id, E attr = E())
     {
         // check -
@@ -337,14 +514,14 @@ public:
         vport vp2 = vport(v2,v2.getPort(id.second.second));
         // check
         adjacency_list[id.first].insert(Edge<V, P, E>(vp1, vp2, attr) );
-        // add transpose Edge
-        transpose_adjacency_list[id.second].insert(Edge<V, P, E>(vp2, vp1, attr));
+        // add reverse Edge
+        backwards_adjacency_list[id.second].insert(Edge<V, P, E>(vp2, vp1, attr));
         //check
         if(vertex_neighbors[id.first.first].find(id.second.first) == vertex_neighbors[id.first.first].end()
-            && id.first.first != id.second.first){
-            if(transpose_vertex_neighbors[id.second.first].find(id.first.first) == transpose_vertex_neighbors[id.second.first].end()
+           && id.first.first != id.second.first){
+            if(reverse_vertex_neighbors[id.second.first].find(id.first.first) == reverse_vertex_neighbors[id.second.first].end()
                && id.first.first != id.second.first){
-                transpose_vertex_neighbors[id.second.first].insert(pair<int, bool>(id.first.first, true));
+                reverse_vertex_neighbors[id.second.first].insert(pair<int, bool>(id.first.first, true));
             }
             vport_map[id.first.first].incOutgoingEdges();
             vport_map[id.second.first].incIngoingEdges();
@@ -352,7 +529,7 @@ public:
         }
     }
 
-    //Print the vertcies and ports per vertex
+    /*Print the vertices and ports per vertex */
     void Print()
     {
         for (auto x : vport_map) {
@@ -360,7 +537,7 @@ public:
         }
     }
 
-    //Print the edges
+    /*Print the edges*/
     void PrintEdges() {
         auto adj_list = AdjacencyList();
         for (auto it = adj_list.begin(); it != adj_list.end(); ++it)
@@ -368,7 +545,7 @@ public:
                 e.print();
     }
 
-    //Print the edges without attributes
+    /*Print the edges without attributes*/
     void PrintEdgesIds() {
         auto adj_list = AdjacencyList();
         for (auto it = adj_list.begin(); it != adj_list.end(); ++it)
@@ -376,6 +553,9 @@ public:
                 e.printIds();
     }
 
+    /* return the outGoing edges id's form the vport 'id' if present
+       Else error
+    */
     vector<edge_id> getOutgoingEdges(vport_id id) {
         auto adj_list = AdjacencyList();
         vector<edge_id> to_return;
@@ -425,6 +605,7 @@ public:
 
 /********** Strongly Connected Components **********/
 
+protected:
     void KosarajuDFS (const map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list
             ,vport_id id, map<vport_id,vport_id>& S, map<vport_id,int>& colorMap, int color){
 
@@ -460,15 +641,16 @@ public:
         int numSCC = 0;
         for(auto rit = adj_list.rbegin(); rit != adj_list.rend(); ++rit){
             vport_id id = (*rit).first;
-            transposeGraph();
+            reverseGraph();
             map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> rev_adj_list = AdjacencyList();
-            transposeGraph();
+            reverseGraph();
             if(components[postOrder[id]] == UNSEEN)
                 KosarajuDFS(rev_adj_list, postOrder[id], dummy, components, numSCC++);
         }
         return numSCC;
     }
 
+public:
 // Computes the SCC graph of a given digraph.
 // input: directed graph (g[u] contains the neighbors of u, nodes are named 0,1,...,|V|-1).
 // output: strongly connected components graph of g (sccg).
@@ -480,6 +662,9 @@ public:
 
 /********** Min Spanning Tree **********/
 private:
+    /* Union Find Class where every 'group' id is a 'vport' id
+       and two groups are merged if the "leaders" of both groups are neighbors
+    */
     struct unionfindPG  {
         map<vport_id ,int> rank;
         map<vport_id ,vport_id >parent;
@@ -514,11 +699,13 @@ private:
         }
     };
 
-// input: edges v1->v2 of the form (weight,(v1,v2)),
-//        number of nodes (n), all nodes are between 0 and n-1.
-// output: pair of the weight of a minimum spanning tree and the minimum spanning tree itself
+    /*find MST for the current port graph according to the 'weightFunc' function
+      the function uses kruskal algorthim to find mst where each node in the graph from a 'vport' type
+      and two node are neihbors if there is a directed edge between them
+      comment : weight function input include the id of the edgs and it's attribute
+    */
 public:
-    pair<double,PortGraph<V,P,E>> Kruskal(double(*weightFunc)(const edge_id ,const E attr)){
+    pair<double,PortGraph<V,P,E>> findMST(double(*weightFunc)(edge_id ,E attr)){
         int n = AdjacencyList().size();
         PortGraph<V,P,E> mst = PortGraph<V,P,E>();
         // (weight , edge_id)
@@ -547,20 +734,21 @@ public:
         return pair<double,PortGraph<V,P,E>>(mst_cost,mst);
     }
 
-/********** BFS/DFS **********/
+/*************** BFS/DFS ***************/
 
-
+    /* used to indicate the end of 'vports' in pg and ther is no more */
     PGVportIterator vportEnd(){
-        return PGVportIterator(vport_id(-1,-1));
+        return PGVportIterator(END_VPORT);
     }
 
+    /* used to indicate the end of 'vertices' in pg the there is no more */
     PGVertexIterator vertexEnd(){
         return PGVertexIterator(-1);
     }
 
+    /* return a vector of the 'vports' ids in the graph */
     vector<vport_id> getVports(){
         vector<vport_id> res;
-
         for(auto ver : vport_map){
             for(auto p : ver.second.getPorts()) {
                 vport_id id = vport_id(ver.second.vertexId(), p.second.getPortId());
@@ -570,6 +758,7 @@ public:
         return res;
     }
 
+    /* return a vector of the 'vertices' ids in the graph */
     vector<int> getVertices(){
         vector<int> res;
         for(auto it : vport_map)
@@ -577,13 +766,19 @@ public:
         return res;
     }
 
+    /* return a maping between vports id and the set of the out going edges from each vport */
     map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> getAdjList(){
         return AdjacencyList();
     }
+
+    /* return a set of the out going edges "id's" vport */
     set<Edge<V,P,E>,cmpEdge<V,P,E>> getVportAdjList(vport_id id){
         return AdjacencyList()[id];
     }
 
+    /* return a vector of vertices ids that has in going edge from vertex with 'src' id
+       two vertices are considered neighbores if they have one edge between them at least
+    */
     vector<int> getVertexAdjList(int src){
         vector<int> res;
         for(auto it : VertexNeighbors()[src])
@@ -591,9 +786,10 @@ public:
         return res;
     }
 
-/********** Bipartite **********/
+/************** Bipartite **************/
 
-    bool isNeighbers(const vport_id& src, const vport_id& dst){
+    /* returns True if there a directed edge from 'src' to 'dst' Else False */
+    bool isNeighbers(vport_id& src, vport_id& dst){
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
         for(const Edge<V,P,E>& e : adj_list[src]){
             if(e.EdgeId().second == dst)
@@ -602,7 +798,11 @@ public:
         return false;
     }
 
-    bool isNeighbers(const int src, const int dst) {
+    /* return True if there is portA in vertex 'src' and port2 in vertex 'dst'
+       such that there is a directed edge from < src,portA > to < dst,portB >
+       Else False
+    */
+    bool isNeighbers(int src, int dst) {
         const PortMap mp_src = vport_map[src].getPorts();
         for(auto it1 = mp_src.begin(); it1 != mp_src.end();it1++){
             //Port<P> p1 = (*it1).second;
@@ -665,7 +865,7 @@ private:
     }
 
 public:
-    // Returns true if G[][] is Bipartite, else false
+    // Returns true if port garph is Bipartite, else false
     bool isBipartite()
     {
         // Create a color array to store colors assigned to all
@@ -689,9 +889,12 @@ public:
 
         return true;
     }
+
 /********** Induced Graph **********/
 
-    Edge<V,P,E> getEdge(const edge_id id){
+    /* return the edge with 'id' id if present Else error*/
+    Edge<V,P,E> getEdge(edge_id id){
+        // check -
         assert(isNeighbers(id.first,id.second));
         auto adj_list = this->AdjacencyList();
         for(auto e : adj_list[id.first]){
@@ -702,34 +905,46 @@ public:
         return Edge<V,P,E>();
     }
 
-    V getVertexAttr(const int i){
-        return vport_map[i].getAttribute();
+    /* returns the vertex's attribute with id 'vertex_i'*/
+    V getVertexAttr(int vertex_i){
+        return vport_map[vertex_i].getAttribute();
     }
 
-    P getPortAttr(const int vertex_id , const int port_id){
+    /* returns the Port's attribute with 'port_id' id in 'vertex_id' id
+       if present Else error
+    */
+    P getPortAttr(int vertex_id , int port_id){
         return vport_map[vertex_id].getPort(port_id).getAttribute();
     }
 
+    /* adds a new vport with 'vertex_attr' vertex atttibute and
+      'port_attr' port attribute to the graph , if the vertex isn't present
+       creates new one and adds a new port
+    */
     void addVport(vport_id id,V vertex_attr,P port_attr){
         //check -
         if(vport_map.find(id.first) == vport_map.end()) {
             Vertex<V, P> v = Vertex<V, P>();
             v.setVertexId(id.first);
             v.setAttribute(vertex_attr);
-            v.addPortAttr(id.second, port_attr);
+            v.addPortWithAttr(id.second, port_attr);
             vport_map[id.first] = v;
             return;
         }
         addPort(id,port_attr);
     }
 
+    /* adds a new port with 'id.second' id and 'attr' attribute if not present
+       else if vertex is peresnt updates the 'id.second' port in 'id.first' vertex
+       with attr attribute Else error
+    */
     void addPort(vport_id id,P attr = P()){
         //check -
-        vport_map[id.first].addPortAttr(id.second,attr);
+        vport_map[id.first].addPortWithAttr(id.second,attr);
     }
 
-    //returns all the edges form vertex 'src' to vertex 'dst' ,else empty sub set
-    vector<edge_id> getNeighbers(const int src, const int dst){
+    /* returns all the edges form vertex 'src' to vertex 'dst' */
+    vector<edge_id> getNeighbers(int src, int dst){
         vector<edge_id> res ;
         const PortMap mp_src = vport_map[src].getPorts();
         for(auto it1 = mp_src.begin(); it1 != mp_src.end();it1++){
@@ -746,17 +961,11 @@ public:
         return res;
     }
 
-    // adds vertex to pg
-    // assume "new" vertex
-    void addVertex(Vertex<V,P> v){
-        vport_map[v.vertexId()] = v;
-    }
-
     ///  Induced Graph by vport sub set
-    PortGraph inducedGraph(bool(*pred)(const vport_id,V)){
+    PortGraph inducedGraph(bool(*pred)(vport_id, V)){
         map<vport_id,int> sub_vport_set;
         // new induced graph
-        PortGraph<V,P,E> pg = PortGraph<V,P,E>();
+        PortGraph<V,P,E> pg = PortGraph<V,P,E>(this->isReversed());
         map<int,int> hash;
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
         // get all vports that satisfies Pred
@@ -788,15 +997,14 @@ public:
         }
 
         // new induced port graph
-        pg.setTranspose(this->isTranspose());
         return pg;
     }
 
     ///  Induced Graph by vertex sub set
-    PortGraph inducedGraph(bool(*pred)(const int,P)){
+    PortGraph inducedGraph(bool(*pred)(int, P)){
         map<int,int> sub_vertex_set;
         // new induced graph
-        PortGraph<V,P,E> pg = PortGraph<V,P,E>();
+        PortGraph<V,P,E> pg = PortGraph<V,P,E>(this->isReversed());
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
         // get all vports that satisfies Pred
         for (auto it = adj_list.begin(); it != adj_list.end(); ++it) {
@@ -838,13 +1046,12 @@ public:
         }
 
         // new induced port graph
-        pg.setTranspose(this->isTranspose());
         return pg;
     }
 
     ///  Induced Graph by edge sub set
-    PortGraph inducedGraph(bool(*pred)(const vport_id, const vport_id,E)){
-        PortGraph<V,P,E> pg = PortGraph<V,P,E>();
+    PortGraph inducedGraph(bool(*pred)(vport_id, vport_id, E)){
+        PortGraph<V,P,E> pg = PortGraph<V,P,E>(this->isReversed());
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
         for(auto it = adj_list.begin(); it != adj_list.end(); it++){
             for(auto e : (*it).second){
@@ -860,7 +1067,6 @@ public:
             }
         }
         // new induced port graph
-        pg.setTranspose(this->isTranspose());
         return pg;
     }
 
@@ -868,8 +1074,8 @@ public:
 /********** Shortest Path **********/
 
     /* Return true if dest is reachable from source
-   Else return false
-*/
+       Else return false
+    */
     bool isReachable(vertex_id source, vertex_id dest) {
         BFSVertexIterator<V,P,E> itr = BFSVertexIterator<V,P,E>(this, source);
 
@@ -1027,60 +1233,22 @@ public:
 //    }
 
 /******************* Clique *******************/
-
-    bool Empty(){
-        return vport_map.empty();
-    }
-
-    /// vport version for finding Clique
-    PortGraph<V,P,E> findVportClique(int k){
-        assert(k>=2);
-        vector<vport_id> res;
-        vector<vport_id> candidates;
-        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
-        for(auto it : adj_list){
-            vport_id id = it.first;
-            if(adj_list[id].size() >= k-1)
-                candidates.push_back(id);
-        }
-        findClique(candidates,res,k);
-        PortGraph<V,P,E> pg = PortGraph<V,P,E>();
-        for(auto id : res){
-            pg.addVport(id,vport_map[id.first].getAttribute(),vport_map[id.first].getPort(id.second).getAttribute());
-        }
-        // create new graph
-        for(int i = 0; i < res.size()-1;i++)
-            for(int j = i+1;j < res.size();j++){
-                edge_id e_id = edge_id(res[i],res[j]);
-                edge_id rev_e_id = edge_id(res[j],res[i]);
-                pg.addEdge(e_id,getEdge(e_id).getAttribute());
-                pg.addEdge(rev_e_id,getEdge(rev_e_id).getAttribute());
-            }
-        // new Clique
-        return pg;
-    }
-
-    /// vertex version for finding Clique
-    vector<int> findVertexClique(int k){
-        assert(k>=2);
-        vector<int> res;
-        vector<int> candidates;
-        for(auto it : vport_map){
-            if(it.second.outGoingEdges() >= k-1)
-                candidates.push_back(it.first);
-        }
-        findClique(candidates,res,k);
-        // check -
-        PortGraph<V,P,E> pg;
-        for(auto vertex_id : res){
-            for(auto it : vport_map[vertex_id].getPorts()){
-                vport_id id = vport_id(vertex_id,it.first);
-                pg.addVport(id,vport_map[vertex_id].getAttribute(),it.second.getAttribute());
-            }
-        }
-        return res;
-    }
-
+    /* a method for inertnal use only , used to find vports or vertices Cliques
+       with bruteforce method.
+       input   : cadidates :- vector of vports or vertices ids with k-1 degree from 'this' port graph
+                 current_set :- vector of vports or vertices ids that construct the current graph
+                 K :- the size of the Clique
+       compute : for each vport\vertex current from candidates assume its in the clique or Not
+                 first check if current is a neighbor with all the nodes in 'current_set'
+                 if so assume its in the clique ,aslo in 'current_set' and trie to find a Clique with size k-1
+                 if the Clique is found then return the 'current_set' as a nodes of the Clique Else
+                 assume the current node isnt in the Clique and trie find a Clique of size k
+                 form the remaining node in 'candidates' if found return 'current_set' Else
+                 return False
+       comment : by finishing th computation 'current_set' has a Clique of size K if present
+                 else unvalid set .
+     */
+protected:
     template <class T>
     bool findClique(vector<T>& candidates,vector<T>& current_set,int k){
         if (current_set.size() == k)
@@ -1114,33 +1282,103 @@ public:
         return false;
     }
 
+public:
+    /* returns true if the graph has no vertices */
+    bool Empty(){
+        return vport_map.empty();
+    }
+
+    /// vport version for finding Clique
+    /* returns a Clique of K vports as a port graph
+       first it founds all the vports with k-1 dergree named as candidates
+       then with bruteforce it tries to constuct a Clique of size K
+       if found returns it as a port graph Else error
+    */
+    PortGraph<V,P,E> findVportClique(int k){
+        assert(k>=2);
+        vector<vport_id> res;
+        vector<vport_id> candidates;
+        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
+        for(auto it : adj_list){
+            vport_id id = it.first;
+            if(adj_list[id].size() >= k-1)
+                candidates.push_back(id);
+        }
+        findClique(candidates,res,k);
+        PortGraph<V,P,E> pg = PortGraph<V,P,E>();
+        for(auto id : res){
+            pg.addVport(id,vport_map[id.first].getAttribute(),vport_map[id.first].getPort(id.second).getAttribute());
+        }
+        // create new graph
+        for(int i = 0; i < res.size()-1;i++)
+            for(int j = i+1;j < res.size();j++){
+                edge_id e_id = edge_id(res[i],res[j]);
+                edge_id rev_e_id = edge_id(res[j],res[i]);
+                pg.addEdge(e_id,getEdge(e_id).getAttribute());
+                pg.addEdge(rev_e_id,getEdge(rev_e_id).getAttribute());
+            }
+        // new Clique
+        return pg;
+    }
+
+    /// vertex version for finding Clique
+    /* returns a Clique of K vertices as a port graph
+       first it founds all the vertices with k-1 dergree named as candidates
+       then with bruteforce it tries to constuct a Clique of size K
+       if found returns a vector of the vertices's ids Else error
+    */
+    vector<int> findVertexClique(int k){
+        assert(k>=2);
+        vector<int> res;
+        vector<int> candidates;
+        for(auto it : vport_map){
+            if(it.second.outGoingEdges() >= k-1)
+                candidates.push_back(it.first);
+        }
+        findClique(candidates,res,k);
+        // check -
+        PortGraph<V,P,E> pg;
+        for(auto vertex_id : res){
+            for(auto it : vport_map[vertex_id].getPorts()){
+                vport_id id = vport_id(vertex_id,it.first);
+                pg.addVport(id,vport_map[vertex_id].getAttribute(),it.second.getAttribute());
+            }
+        }
+        return res;
+    }
+
 /****************** SubGraph ******************/
-
-    bool isSubGraph(PortGraph<V,P,E>& sub_graph,bool vertex_attr_check,bool ports_attr_check,bool edge_attr_check){
+    /* returns True if This graph is sub graph of that Graph
+       check if all the vertcies in 'this' graph are a sub set of 'that' vertices also check the attributs if vertex_attr_check is true
+       check if all the vports in 'this' graph are a sub set of 'that' vports also check the attributs if vports_attr_check is true
+       check if all the edges in 'this' graph are a sub set of 'that' edges also check the attributs if edges_attr_check is true
+       if all the above are sub set of that graph return True Else False
+    */
+    bool isSubGraph(PortGraph<V,P,E>& that,bool vertex_attr_check,bool ports_attr_check,bool edge_attr_check){
         const map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
-        const map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& sub_adj_list = sub_graph.getAdjList();
+        const map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& sub_adj_list = that.getAdjList();
 
-        /// vertex - check
-        for(int vertex_id : sub_graph.getVertices()){
+        // vertex - check
+        for(int vertex_id : that.getVertices()){
             // vertex id
             if(vport_map[vertex_id] == vport_map.end())
                 return false;
             // vertex attribute
-            if(vertex_attr_check && sub_graph.getVertexAttr(vertex_id) != vport_map[vertex_id].getAttribute())
+            if(vertex_attr_check && that.getVertexAttr(vertex_id) != vport_map[vertex_id].getAttribute())
                 return false;
         }
 
-        /// vports - check
-        for(auto id : sub_graph.getVports()){
+        // vports - check
+        for(auto id : that.getVports()){
             // vport id
             if(adj_list.find(id) == adj_list.end())
                 return false;
             // port attribute
-            if(ports_attr_check && sub_graph.getPortAttr(id.first,id.second) != getPortAttr(id.first,id.second))
+            if(ports_attr_check && that.getPortAttr(id.first,id.second) != getPortAttr(id.first,id.second))
                 return false;
         }
 
-        /// edge - check
+        // edge - check
         for(auto it = sub_adj_list.begin(); it != sub_adj_list.end(); it++){
             for(auto e : it->second){
                 edge_id e_id = e.EdgeId();
@@ -1148,7 +1386,7 @@ public:
                 if(adj_list[e_id.first].find(e_id.second) == adj_list[e_id.first].end())
                     return false;
                 // edge attribute
-                if(edge_attr_check && sub_graph.getEdge(e_id).getAttribute() != getEdge(e_id).getAttribute())
+                if(edge_attr_check && that.getEdge(e_id).getAttribute() != getEdge(e_id).getAttribute())
                     return false;
             }
         }
@@ -1159,32 +1397,72 @@ public:
 
 /********* Difference between two PG *********/
 
+    /* removes the edge with the id 'edge id' if present Else error
+       first of all , remove the edge from the adjancecy list of vport with the id 'edge_id.first'
+       then check if the src vertex and the dst vertex still neighbors if so finish Esle
+       decrease the number of out doing edges from 'src' vertex and remove 'dst' vertex from its neighbors list
+       decrease the number of in going edges to 'dst' vertex and remove 'src' vertex' from its backwards neihbors list
+    */
     void removeEdge(edge_id id){
-        //check -
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
         if(adj_list[id.first].find(getEdge(id)) == adj_list[id.first].end())
             return;
         adj_list[id.first].erase(getEdge(id));
-        transposeGraph();
+        reverseGraph();
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& rev_adj_list = AdjacencyList();
         rev_adj_list[id.second].erase(getEdge(edge_id(id.second,id.first)));
-        transposeGraph();
+        reverseGraph();
+        vport_id src = id.first;
+        vport_id dst = id.second;
+        if(isNeighbers(src.first,dst.first))
+            return;
+        vport_map[src.first].decOutgoingEdges();
+        vport_map[dst.first].decIngoingEdges();
+        vertex_neighbors[src.first].erase(dst.first);
+        reverse_vertex_neighbors[dst.first].erase(src.first);
     }
 
-    void removeVport(vport_id id){
-        //check -
+    /* removes the vport with the id 'vport id' if present Else error
+       first of all removes the port with the id 'vport id.second' from the set of ports
+       in 'vport id.first' vertex and reomve each directed edge from or to 'vport id' port
+    */
+    void removePort(vport_id id){
+        if(vport_map.find(id.first) == vport_map.end())
+            return;
+        vport_map[id.first].removePort(id.second);
+        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
+        for(auto it1 = adj_list.begin(); it1 != adj_list.end() ; it1++){
+            vport_id this_vport = it1.first;
+            for(auto it2 = adj_list.begin(); it2 != adj_list.end() ; it2++){
+                vport_id that_vport = it2.first;
+                if(this_vport == id)
+                    removeEdge(edge_id(id,that_vport));
+                if(that_vport == id)
+                    removeEdge(edge_id(this_vport,id));
+            }
+        }
     }
 
+    /* reomve the vertex with the id 'vertex id' if present Else error
+       first of all remove the vertex 'id' form the "vport_map"
+       and use removePort func to remove each port 'in' this vertex and thus including
+       the removal of all out\in going edges from\to 'this' vertex
+    */
     void removeVertex(int id){
-        //check -
+        if(vport_map.find(id) == vport_map.end())
+            return;
+        for(auto p :vport_map[id].getPorts()){
+            removePort(vport_id(id,p.getPortId()));
+        }
+        vport_map.erase(id);
     }
 
+    /* return the number of ports in 'id' vertex if present Else error */
     int getVertexPortNum(int id){
-        //check -
         return vport_map[id].getPorts().size();
     }
 
-    /* return Port Graph without any vertecies/cports/edges that apperes in pg*/
+    /* return Port Graph without any vertices/vports/edges that appears in org_pg */
     PortGraph<V,P,E> diff(PortGraph<V,P,E>& org_pg){
         PortGraph<V,P,E> diff_pg = *this;
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = diff_pg.getAdjList();
@@ -1208,7 +1486,7 @@ public:
 
 };
 
-/********** Iterator Implementation **********/
+/********** Iterator Implementations **********/
 
 /// DFS BY VPORT
 template <class V , class P , class E >
@@ -1218,6 +1496,8 @@ private:
     PortGraph<V,P,E>* pg;
     map<vport_id,bool> visited;
     map<vport_id,bool> not_visited;
+
+protected:
     DFSIterator(vector<vport_id> _path,PortGraph<V,P,E>* _pg,map<vport_id,bool>& _visited,map<vport_id,bool>& _not_visited,vport_id _current){
         path = _path;
         pg = _pg;
@@ -1272,7 +1552,7 @@ public:
                 return (*this);
             }
         }
-        current = END_VPORT;
+        current = this->END_VPORT;
         return *this;
     }
 
@@ -1286,10 +1566,6 @@ public:
         return current;
     }
 
-//  vport_id const& operator*(){
-//        return *current;
-//    }
-
     bool operator== (const PGVportIterator& that)const {return (this->current) == (*that) ;}
     bool operator!= (const PGVportIterator& that)const {return !this->operator == (that) ;}
 };
@@ -1302,6 +1578,8 @@ private:
     PortGraph<V,P,E>* pg;
     map<int,bool> visited;
     map<int,bool> not_visited;
+
+protected:
     DFSVertexIterator(vector<int> _path,PortGraph<V,P,E>* _pg,map<int,bool>& _visited,map<int,bool>& _not_visited,int _current){
         path = _path;
         pg = _pg;
@@ -1357,7 +1635,7 @@ public:
                 return (*this);
             }
         }
-        current = END_VERTEX;
+        current = this->END_VERTEX;
         return *this;
     }
 
@@ -1371,10 +1649,6 @@ public:
         return current;
     }
 
-//  vport_id const& operator*(){
-//        return *current;
-//    }
-
     bool operator== (const PGVertexIterator& that)const {return (this->current) == (*that) ;}
     bool operator!= (const PGVertexIterator& that)const {return !this->operator == (that) ;}
 };
@@ -1387,7 +1661,8 @@ private:
     PortGraph<V,P,E>* pg;
     map<vport_id,bool> visited;
     map<vport_id,bool> not_visited;
-    //vport_id current;
+
+protected:
     BFSIterator(vector<vport_id> _queue,PortGraph<V,P,E>* _pg,map<vport_id,bool>& _visited,map<vport_id,bool>& _not_visited,vport_id _current){
         queue = _queue;
         pg = _pg;
@@ -1417,7 +1692,7 @@ public:
 
     BFSIterator operator++() {
         if(queue.empty()){
-            current = vport_id(END_VPORT);
+            current = this->END_VPORT;
             return *this;
         }
         vport_id current_src = queue.front();
@@ -1438,7 +1713,7 @@ public:
         }
         else{// get new random 'not visited' vport
             if(not_visited.empty()){
-                current = vport_id(END_VPORT);
+                current = this->END_VPORT;
                 return *this;
             }
             auto it = not_visited.begin();
@@ -1452,7 +1727,7 @@ public:
 
     BFSIterator next() {
         if(queue.empty()){
-            current = vport_id(END_VPORT);
+            current = this->END_VPORT;
             return *this;
         }
         vport_id current_src = queue.front();
@@ -1472,7 +1747,7 @@ public:
             return (*this);
         }
         else{ // return end
-            current = vport_id(END_VPORT);
+            current = this->END_VPORT;
             return *this;
         }
         return (*this);
@@ -1488,10 +1763,6 @@ public:
         return current;
     }
 
-//  vport_id const& operator*(){
-//        return *current;
-//    }
-
     bool operator== (const PGVportIterator& that)const {return (this->current) == (*that) ;}
     bool operator!= (const PGVportIterator& that)const {return !this->operator==(that);}
 };
@@ -1504,7 +1775,8 @@ private:
     PortGraph<V,P,E>* pg;
     map<int,bool> visited;
     map<int,bool> not_visited;
-    //int current;
+
+protected:
     BFSVertexIterator(vector<int> _queue,PortGraph<V,P,E>* _pg,map<int,bool>& _visited,map<int,bool>& _not_visited,int _current){
         queue = _queue;
         pg = _pg;
@@ -1512,6 +1784,7 @@ private:
         not_visited = _not_visited;
         current = _current;
     }
+
 public:
 
     BFSVertexIterator(int id){
@@ -1534,7 +1807,7 @@ public:
 
     BFSVertexIterator operator++() {
         if(queue.empty()){
-            current = END_VERTEX;
+            current = this->END_VERTEX;
             return *this;
         }
         int current_src = queue.front();
@@ -1554,7 +1827,7 @@ public:
         }
         else{// get new random 'not visited' vertex
             if(not_visited.empty()){
-                current = END_VERTEX;
+                current = this->END_VERTEX;
                 return *this;
             }
             auto it = not_visited.begin();
@@ -1568,7 +1841,7 @@ public:
 
     BFSVertexIterator next() {
         if(queue.empty()){
-            current = END_VERTEX;
+            current = this->END_VERTEX;
             return *this;
         }
         int current_src = queue.front();
@@ -1587,7 +1860,7 @@ public:
             return (*this);
         }
         else{ // return end
-            current = END_VERTEX;
+            current = this->END_VERTEX;
             return *this;
         }
         return (*this);
@@ -1603,30 +1876,8 @@ public:
         return current;
     }
 
-//  vport_id const& operator*(){
-//        return *current;
-//    }
-
     bool operator== (const PGVertexIterator& that)const {return (this->current) == (*that) ;}
     bool operator!= (const PGVertexIterator& that)const {return !this->operator == (that);}
 };
 
-
-/* TODO:
- *  topological_sort -- DONE
- *  strongly_connected_components -- DONE
- *  transpose_graph -- Done
- *  min_spanning_tree -- Done
- *  {DFS | BFS} iterator (vports/vertices) -- DONE
- *  is_bipartite -- DONE
- *  induced_graph by (vports/vertices/edges) -- DONE
- *  shortestpath(weight_function) -- DONE
- *  findPathCost(vport, vport, cost_function) -- DONE
- *  isReachable(vport source, vport dest) -- DONE
- *  findClique (vports/vertices) -- DONE
- *  isSubGraph -- DONE
- *  min cut / max flow -- DONE
- *  Diff -- DONE
-*/
-
-#endif //PORJECT_OFF_PORTGRAPH_H
+#endif
