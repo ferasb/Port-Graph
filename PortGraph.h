@@ -1066,7 +1066,7 @@ public:
     }
 
 
-/********** Shortest Path **********/
+/********** is Reachable **********/
 
     /* Return true if dest is reachable from source
        Else return false
@@ -1093,6 +1093,7 @@ public:
         return false;
     }
 
+/********** Shortest Paths **********/
     /*
      * Returns a vector of edges that represent the shortest path from source to dest (path)
      * If there's no path then return empty vector
@@ -1184,48 +1185,50 @@ public:
         return shortest_path_weight;
     }
 
-//    int maxFlowAux(map<edge_id, int>& capacity_map, map<vport_id, vport_id>& previous, vport_id src, vport_id dst) {
-//        previous[src] = vport_id(-1, -1); // undefined
-//        queue<pair<vport_id, int>> queue1;
-//        queue1.push(pair<vport_id, int>(src, std::numeric_limits<int>::max()));
-//        while (!queue1.empty()) {
-//            vport_id curr = queue1.front().first;
-//            int curr_flow = queue1.front().second;
-//            queue1.pop();
-//            for (auto neighbor : adjacency_list_undirected[curr]) {
-//                if (previous.count(neighbor) == 0 && capacity_map[edge_id(curr, neighbor)] != 0) {
-//                    previous[neighbor] = curr;
-//                    int flow = min(curr_flow, capacity_map[edge_id(curr, neighbor)]);
-//                    if (neighbor == dst)
-//                        return flow;
-//                    queue1.push(pair<vport_id, int>(neighbor, flow));
-//                }
-//            }
-//        }
-//        return 0;
-//    }
+/********** Max Flow **********/
 
-//    int maxFlow(CapacityFunction cf, vport_id src, vport_id dst) {
-//        int max_flow = 0;
-//        map<edge_id, int> capacity_map;
-//        vector<edge_id> edges = getEdges();
-//        for (auto edge : edges)
-//            capacity_map[edge] = cf(edge);
-//        map<vport_id, vport_id> previous;
-//        int flow = maxFlowAux(capacity_map, previous, src, dst);
-//        while (flow != 0) {
-//            max_flow += flow;
-//            vport_id curr = dst;
-//            while (curr != src) {
-//                vport_id parent = previous[curr];
-//                capacity_map[edge_id(parent, curr)] -= flow;
-//                capacity_map[edge_id(curr, parent)] += flow;
-//                curr = parent;
-//            }
-//            flow = maxFlowAux(capacity_map, previous, src, dst);
-//        }
-//        return max_flow;
-//    }
+   int maxFlowAux(map<edge_id, int>& capacity_map, map<vport_id, vport_id>& previous, vport_id src, vport_id dst) {
+       previous[src] = vport_id(-1, -1); // undefined
+       queue<pair<vport_id, int>> queue1;
+       queue1.push(pair<vport_id, int>(src, std::numeric_limits<int>::max()));
+       while (!queue1.empty()) {
+           vport_id curr = queue1.front().first;
+           int curr_flow = queue1.front().second;
+           queue1.pop();
+           for (auto neighbor : adjacency_list_undirected[curr]) {
+               if (previous.count(neighbor) == 0 && capacity_map[edge_id(curr, neighbor)] != 0) {
+                   previous[neighbor] = curr;
+                   int flow = min(curr_flow, capacity_map[edge_id(curr, neighbor)]);
+                   if (neighbor == dst)
+                       return flow;
+                   queue1.push(pair<vport_id, int>(neighbor, flow));
+               }
+           }
+       }
+       return 0;
+   }
+
+   int maxFlow(CapacityFunction cf, vport_id src, vport_id dst) {
+       int max_flow = 0;
+       map<edge_id, int> capacity_map;
+       vector<edge_id> edges = getEdges();
+       for (auto edge : edges)
+           capacity_map[edge] = cf(edge);
+       map<vport_id, vport_id> previous;
+       int flow = maxFlowAux(capacity_map, previous, src, dst);
+       while (flow != 0) {
+           max_flow += flow;
+           vport_id curr = dst;
+           while (curr != src) {
+               vport_id parent = previous[curr];
+               capacity_map[edge_id(parent, curr)] -= flow;
+               capacity_map[edge_id(curr, parent)] += flow;
+               curr = parent;
+           }
+           flow = maxFlowAux(capacity_map, previous, src, dst);
+       }
+       return max_flow;
+   }
 
 /******************* Clique *******************/
     /* a method for inertnal use only , used to find vports or vertices Cliques

@@ -9,7 +9,7 @@
 #include <iostream>
 #include "PortGraph.h"
 
-void PG_TRANSPOSE(){
+void PG_TRANSPOSE() {
     ostringstream s;
     s << "Attributes : <int ,int ,int>" << endl ;
     s << "Transpose Example" << endl << endl;
