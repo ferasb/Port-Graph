@@ -603,7 +603,7 @@ public:
 /********** Strongly Connected Components **********/
 
 protected:
-    void KosarajuDFS (const map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list
+    void KosarajuDFS(const map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list
             ,vport_id id, map<vport_id,vport_id>& S, map<vport_id,int>& colorMap, int color) {
 
         colorMap[id] = color;
@@ -1606,7 +1606,7 @@ public:
     ~DFSVertexIterator() {}
 
     DFSVertexIterator operator++() {
-        while(!not_visited.empty()) {
+        while (!not_visited.empty()) {
             int current_src = current;
             //done
             for(int dst : pg->getVertexAdjList(current_src)) {
@@ -1846,7 +1846,7 @@ public:
         queue.erase(queue.begin());
         // add the next layer
         for (int  dst : pg->getVertexAdjList(current_src)) {
-            if(visited.find(dst) == visited.end()){
+            if (visited.find(dst) == visited.end()) {
                 assert(not_visited.find(dst) != not_visited.end());
                 visited.insert(pair<int,bool>(dst,true));
                 not_visited.erase(dst);
