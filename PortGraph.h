@@ -516,9 +516,9 @@ public:
         backwards_adjacency_list[id.second].insert(Edge<V, P, E>(vp2, vp1, attr));
         //check
         if (vertex_neighbors[id.first.first].find(id.second.first) == vertex_neighbors[id.first.first].end()
-           && id.first.first != id.second.first) {
+            && id.first.first != id.second.first) {
             if (reverse_vertex_neighbors[id.second.first].find(id.first.first) == reverse_vertex_neighbors[id.second.first].end()
-               && id.first.first != id.second.first) {
+                && id.first.first != id.second.first) {
                 reverse_vertex_neighbors[id.second.first].insert(pair<int, bool>(id.first.first, true));
             }
             vertex_map[id.first.first].incOutgoingEdges();
@@ -597,64 +597,7 @@ public:
             }
         }
         // check -
-        return vport_order;
-    }
-
-/********** Strongly Connected Components **********/
-
-protected:
-    void KosarajuDFS(const map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list
-            ,vport_id id, map<vport_id,vport_id>& S, map<vport_id,int>& colorMap, int color) {
-
-        colorMap[id] = color;
-        for(auto edge : adj_list[id]){
-            vport_id neighbor = edge.EdgeId().second;
-            if(colorMap[neighbor] == UNSEEN)
-                KosarajuDFS(adj_list,neighbor, S,colorMap,color);
-        }
-        S.insert({id,id});
-    }
-
-// Compute the number of SCCs and maps nodes to their corresponding SCCs.
-// input: directed graph (g[u] contains the neighbors of u, nodes are named 0,1,...,|V|-1).
-// output: the number of SCCs (return value), a mapping from node to SCC color (components).
-    int findSCC(map<vport_id ,int>& components) {
-        // first pass: record the `post-order' of original graph
-        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> adj_list = AdjacencyList();
-        map<vport_id ,vport_id> postOrder , dummy ;
-        map<vport_id ,int>  seen ;
-        for (auto it = adj_list.begin(); it != adj_list.end(); ++it){
-            vport_id id = (*it).first;
-            seen[id] = UNSEEN;
-            components[id] = UNSEEN;
-        }
-        for (auto it = adj_list.begin(); it != adj_list.end(); ++it) {
-            vport_id id = (*it).first;
-            if(seen[id] == UNSEEN)
-                KosarajuDFS(adj_list , id,postOrder,seen,SEEN);
-        }
-        // reverse iterator
-        // second pass: explore the SCCs based on first pass result
-        int numSCC = 0;
-        for (auto rit = adj_list.rbegin(); rit != adj_list.rend(); ++rit) {
-            vport_id id = (*rit).first;
-            reverseGraph();
-            map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> rev_adj_list = AdjacencyList();
-            reverseGraph();
-            if (components[postOrder[id]] == UNSEEN)
-                KosarajuDFS(rev_adj_list, postOrder[id], dummy, components, numSCC++);
-        }
-        return numSCC;
-    }
-
-public:
-// Computes the SCC graph of a given digraph.
-// input: directed graph (g[u] contains the neighbors of u, nodes are named 0,1,...,|V|-1).
-// output: strongly connected components graph of g (sccg).
-    void findSCCgraph(vector<set<int>>& sccg) {
-        map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> adj_list = AdjacencyList();
-        map<vport_id, int> component;
-        int n = findSCC(component);
+        return vport_order.size() == vport_map.size() ? vport_order : vector<vport_id>();
     }
 
 /********** Min Spanning Tree **********/
@@ -957,7 +900,7 @@ public:
     }
 
     ///  Induced Graph by vport sub set
-    PortGraph inducedGraph(bool(*pred)(vport_id, V)) {
+    PortGraph inducedGraph(bool(*pred)(vport_id, V, P)) {
         map<vport_id,int> sub_vport_set;
         // new induced graph
         PortGraph<V,P,E> pg = PortGraph<V,P,E>(this->isReversed());
@@ -996,7 +939,7 @@ public:
     }
 
     ///  Induced Graph by vertex sub set
-    PortGraph inducedGraph(bool(*pred)(int, P)) {
+    PortGraph inducedGraph(bool(*pred)(int, V)) {
         map<int,int> sub_vertex_set;
         // new induced graph
         PortGraph<V,P,E> pg = PortGraph<V,P,E>(this->isReversed());
@@ -1045,7 +988,7 @@ public:
     }
 
     ///  Induced Graph by edge sub set
-    PortGraph inducedGraph(bool(*pred)(vport_id, vport_id, E)) {
+    PortGraph inducedGraph(bool(*pred)(edge_id , E)) {
         PortGraph<V,P,E> pg = PortGraph<V,P,E>(this->isReversed());
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
         for (auto it = adj_list.begin(); it != adj_list.end(); it++) {
@@ -1187,51 +1130,51 @@ public:
 
 /********** Max Flow **********/
 
-   int maxFlowAux(map<edge_id, int>& capacity_map, map<vport_id, vport_id>& previous, vport_id src, vport_id dst) {
-       previous[src] = vport_id(-1, -1); // undefined
-       queue<pair<vport_id, int>> queue1;
-       queue1.push(pair<vport_id, int>(src, std::numeric_limits<int>::max()));
-       while (!queue1.empty()) {
-           vport_id curr = queue1.front().first;
-           int curr_flow = queue1.front().second;
-           queue1.pop();
-           for (auto neighbor : adjacency_list_undirected[curr]) {
-               if (previous.count(neighbor) == 0 && capacity_map[edge_id(curr, neighbor)] != 0) {
-                   previous[neighbor] = curr;
-                   int flow = min(curr_flow, capacity_map[edge_id(curr, neighbor)]);
-                   if (neighbor == dst)
-                       return flow;
-                   queue1.push(pair<vport_id, int>(neighbor, flow));
-               }
-           }
-       }
-       return 0;
-   }
+    int maxFlowAux(map<edge_id, int>& capacity_map, map<vport_id, vport_id>& previous, vport_id src, vport_id dst) {
+        previous[src] = vport_id(-1, -1); // undefined
+        queue<pair<vport_id, int>> queue1;
+        queue1.push(pair<vport_id, int>(src, std::numeric_limits<int>::max()));
+        while (!queue1.empty()) {
+            vport_id curr = queue1.front().first;
+            int curr_flow = queue1.front().second;
+            queue1.pop();
+            for (auto neighbor : adjacency_list_undirected[curr]) {
+                if (previous.count(neighbor) == 0 && capacity_map[edge_id(curr, neighbor)] != 0) {
+                    previous[neighbor] = curr;
+                    int flow = min(curr_flow, capacity_map[edge_id(curr, neighbor)]);
+                    if (neighbor == dst)
+                        return flow;
+                    queue1.push(pair<vport_id, int>(neighbor, flow));
+                }
+            }
+        }
+        return 0;
+    }
 
-   int maxFlow(CapacityFunction cf, vport_id src, vport_id dst) {
-       int max_flow = 0;
-       map<edge_id, int> capacity_map;
-       vector<edge_id> edges = getEdges();
-       for (auto edge : edges)
-           capacity_map[edge] = cf(edge);
-       map<vport_id, vport_id> previous;
-       int flow = maxFlowAux(capacity_map, previous, src, dst);
-       while (flow != 0) {
-           max_flow += flow;
-           vport_id curr = dst;
-           while (curr != src) {
-               vport_id parent = previous[curr];
-               capacity_map[edge_id(parent, curr)] -= flow;
-               capacity_map[edge_id(curr, parent)] += flow;
-               curr = parent;
-           }
-           flow = maxFlowAux(capacity_map, previous, src, dst);
-       }
-       return max_flow;
-   }
+    int maxFlow(CapacityFunction cf, vport_id src, vport_id dst) {
+        int max_flow = 0;
+        map<edge_id, int> capacity_map;
+        vector<edge_id> edges = getEdges();
+        for (auto edge : edges)
+            capacity_map[edge] = cf(edge);
+        map<vport_id, vport_id> previous;
+        int flow = maxFlowAux(capacity_map, previous, src, dst);
+        while (flow != 0) {
+            max_flow += flow;
+            vport_id curr = dst;
+            while (curr != src) {
+                vport_id parent = previous[curr];
+                capacity_map[edge_id(parent, curr)] -= flow;
+                capacity_map[edge_id(curr, parent)] += flow;
+                curr = parent;
+            }
+            flow = maxFlowAux(capacity_map, previous, src, dst);
+        }
+        return max_flow;
+    }
 
 /******************* Clique *******************/
-    /* a method for inertnal use only , used to find vports or vertices Cliques
+    /* a method for internal use only , used to find vports or vertices Cliques
        with bruteforce method.
        input   : cadidates :- vector of vports or vertices ids with k-1 degree from 'this' port graph
                  current_set :- vector of vports or vertices ids that construct the current graph
