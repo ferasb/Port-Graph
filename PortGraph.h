@@ -366,7 +366,7 @@ class BFSVertexIterator;
     includes :
       1) map adjacency_list for vports and it's reverse
       2) bool is_transpose : true if the graph is reversed Else false
-      3) map vport_map : maps vport id to vports
+      3) map vertex_map : maps vport id to vports
       4) map vertex_neighbors for vertecies and it's reverse
       4) map shortest_paths and shortest_paths_weights : maps the path from 'src' to 'dst' and it's weight
     PortGraph Class requires the class P to have :
@@ -393,8 +393,8 @@ private:
 
     // maps vport_id (vertix and port) to its vport
     // vertex id -> vertex
-    // vmap por_id -> attr
-    map<int, Vertex<V,P>> vport_map;
+    // maps vertex_id (int) to its vertex
+    map<vertex_id, Vertex<V,P>> vertex_map;
 
     //maps vertex_id -> neighbor vertices
     map<int,map<int,bool>> vertex_neighbors;
@@ -494,7 +494,7 @@ public:
             backwards_adjacency_list[vport_id(vertex_id, i)] = set<Edge<V, P, E>, cmpEdge<V,P,E>>();
             P portAttr =  ports_attr.empty() ? P() : ports_attr[i] ;
         }
-        vport_map[vertex_id] = Vertex<V, P>(vertex_id, ports_num, attr, ports_attr);
+        vertex_map[vertex_id] = Vertex<V, P>(vertex_id, ports_num, attr, ports_attr);
         if (vertex_neighbors.find(vertex_id) == vertex_neighbors.end())
             vertex_neighbors[vertex_id] = map<int,bool>();
         reverse_vertex_neighbors[vertex_id] = map<int,bool>();
@@ -506,8 +506,8 @@ public:
     void addEdge(edge_id id, E attr = E()) {
         // check -
         // add edge
-        Vertex<V,P> v1 = vport_map[id.first.first];
-        Vertex<V,P> v2 = vport_map[id.second.first];
+        Vertex<V,P> v1 = vertex_map[id.first.first];
+        Vertex<V,P> v2 = vertex_map[id.second.first];
         vport vp1 = vport(v1,v1.getPort(id.first.second));
         vport vp2 = vport(v2,v2.getPort(id.second.second));
         // check
@@ -521,15 +521,15 @@ public:
                && id.first.first != id.second.first) {
                 reverse_vertex_neighbors[id.second.first].insert(pair<int, bool>(id.first.first, true));
             }
-            vport_map[id.first.first].incOutgoingEdges();
-            vport_map[id.second.first].incIngoingEdges();
+            vertex_map[id.first.first].incOutgoingEdges();
+            vertex_map[id.second.first].incIngoingEdges();
             vertex_neighbors[id.first.first].insert(pair<int, bool>(id.second.first, true));
         }
     }
 
     /*Print the vertices and ports per vertex */
     void Print() {
-        for (auto x : vport_map) {
+        for (auto x : vertex_map) {
             x.second.print();
         }
     }
@@ -721,8 +721,8 @@ public:
             if (components.find(e.second.first) != components.find(e.second.second)) {
                 // W function on edges
                 edge_id id = e.second;
-                mst.addVport(id.first,vport_map[id.first.first].getAttribute(),vport_map[id.first.first].getPort(id.first.second).getAttribute());
-                mst.addVport(id.second,vport_map[id.second.first].getAttribute(),vport_map[id.second.first].getPort(id.second.second).getAttribute());
+                mst.addVport(id.first,vertex_map[id.first.first].getAttribute(),vertex_map[id.first.first].getPort(id.first.second).getAttribute());
+                mst.addVport(id.second,vertex_map[id.second.first].getAttribute(),vertex_map[id.second.first].getPort(id.second.second).getAttribute());
                 mst.addEdge(id,getEdge(id).getAttribute());
                 mst_cost += e.first;
                 components.unite(id.first, id.second);
@@ -746,7 +746,7 @@ public:
     /* return a vector of the 'vports' ids in the graph */
     vector<vport_id> getVports() {
         vector<vport_id> res;
-        for(auto ver : vport_map){
+        for(auto ver : vertex_map){
             for(auto p : ver.second.getPorts()) {
                 vport_id id = vport_id(ver.second.vertexId(), p.second.getPortId());
                 res.push_back(id);
@@ -758,7 +758,7 @@ public:
     /* return a vector of the 'vertices' ids in the graph */
     vector<int> getVertices() {
         vector<int> res;
-        for(auto it : vport_map)
+        for(auto it : vertex_map)
             res.push_back(it.first);
         return res;
     }
@@ -800,11 +800,11 @@ public:
        Else False
     */
     bool isNeighbers(int src, int dst) {
-        const PortMap mp_src = vport_map[src].getPorts();
+        const PortMap mp_src = vertex_map[src].getPorts();
         for (auto it1 = mp_src.begin(); it1 != mp_src.end();it1++) {
             //Port<P> p1 = (*it1).second;
             vport_id id1 = vport_id(src,(*it1).second.getPortId());
-            const PortMap mp_dst = vport_map[dst].getPorts();
+            const PortMap mp_dst = vertex_map[dst].getPorts();
             for (auto it2 = mp_dst.begin(); it2 != mp_dst.end();it2++) {
                 //Port<P> p2 = (*it2).second;
                 vport_id id2 = vport_id(dst,(*it2).second.getPortId());
@@ -902,14 +902,14 @@ public:
 
     /* returns the vertex's attribute with id 'vertex_i'*/
     V getVertexAttr(int vertex_i) {
-        return vport_map[vertex_i].getAttribute();
+        return vertex_map[vertex_i].getAttribute();
     }
 
     /* returns the Port's attribute with 'port_id' id in 'vertex_id' id
        if present Else error
     */
     P getPortAttr(int vertex_id , int port_id) {
-        return vport_map[vertex_id].getPort(port_id).getAttribute();
+        return vertex_map[vertex_id].getPort(port_id).getAttribute();
     }
 
     /* adds a new vport with 'vertex_attr' vertex atttibute and
@@ -918,12 +918,12 @@ public:
     */
     void addVport(vport_id id,V vertex_attr,P port_attr) {
         //check -
-        if(vport_map.find(id.first) == vport_map.end()) {
+        if(vertex_map.find(id.first) == vertex_map.end()) {
             Vertex<V, P> v = Vertex<V, P>();
             v.setVertexId(id.first);
             v.setAttribute(vertex_attr);
             v.addPortWithAttr(id.second, port_attr);
-            vport_map[id.first] = v;
+            vertex_map[id.first] = v;
             return;
         }
         addPort(id,port_attr);
@@ -935,17 +935,17 @@ public:
     */
     void addPort(vport_id id,P attr = P()) {
         //check -
-        vport_map[id.first].addPortWithAttr(id.second,attr);
+        vertex_map[id.first].addPortWithAttr(id.second,attr);
     }
 
     /* returns all the edges form vertex 'src' to vertex 'dst' */
     vector<edge_id> getNeighbers(int src, int dst) {
         vector<edge_id> res;
-        const PortMap mp_src = vport_map[src].getPorts();
+        const PortMap mp_src = vertex_map[src].getPorts();
         for (auto it1 = mp_src.begin(); it1 != mp_src.end();it1++) {
             //Port<P> p1 = (*it1).second;
             vport_id id1 = vport_id(src,(*it1).second.getPortId());
-            const PortMap mp_dst = vport_map[dst].getPorts();
+            const PortMap mp_dst = vertex_map[dst].getPorts();
             for (auto it2 = mp_dst.begin(); it2 != mp_dst.end();it2++) {
                 //Port<P> p2 = (*it2).second;
                 vport_id id2 = vport_id(dst,(*it2).second.getPortId());
@@ -981,8 +981,8 @@ public:
                 // add new vport
                 if (isNeighbers(src,dst)) {
                     // new
-                    pg.addVport(src,vport_map[src.first].getAttribute(),vport_map[src.first].getPort(src.second).getAttribute());
-                    pg.addVport(dst,vport_map[dst.first].getAttribute(),vport_map[dst.first].getPort(dst.second).getAttribute());
+                    pg.addVport(src,vertex_map[src.first].getAttribute(),vertex_map[src.first].getPort(src.second).getAttribute());
+                    pg.addVport(dst,vertex_map[dst.first].getAttribute(),vertex_map[dst.first].getPort(dst.second).getAttribute());
                     // new edge
                     edge_id e_id = edge_id(src,dst);
                     E e_attr = getEdge(e_id).getAttribute();
@@ -1004,7 +1004,7 @@ public:
         // get all vports that satisfies Pred
         for (auto it = adj_list.begin(); it != adj_list.end(); ++it) {
             vport_id id = (*it).first;
-            if (pred(id.first,vport_map[id.first].getAttribute())) {
+            if (pred(id.first,vertex_map[id.first].getAttribute())) {
                 sub_vertex_set.insert(pair<int,int>(id.first,1));
             }
         }
@@ -1012,9 +1012,9 @@ public:
         for (auto it1 = sub_vertex_set.begin();it1 !=sub_vertex_set.end();it1++) {
             int src = (*it1).first;
             // add first vertex
-            for (auto it : vport_map[src].getPorts()) {
+            for (auto it : vertex_map[src].getPorts()) {
                 auto p = it.second;
-                pg.addVport(vport_id(src,p.getPortId()), vport_map[src].getAttribute(),p.getAttribute());
+                pg.addVport(vport_id(src,p.getPortId()), vertex_map[src].getAttribute(),p.getAttribute());
             }
 
             for (auto it2 =  sub_vertex_set.begin(); it2 != sub_vertex_set.end();it2++) {
@@ -1023,16 +1023,16 @@ public:
                 int dst = (*it2).first;
                 vector<edge_id> vec = getNeighbers(src, dst);
                 // add second vertex
-                for (auto it : vport_map[dst].getPorts()) {
+                for (auto it : vertex_map[dst].getPorts()) {
                     auto p = it.second;
-                    pg.addVport(vport_id(dst, p.getPortId()), vport_map[dst].getAttribute(), p.getAttribute());
+                    pg.addVport(vport_id(dst, p.getPortId()), vertex_map[dst].getAttribute(), p.getAttribute());
                 }
 
                 if (!vec.empty()) {
                     //new edge
                     for (auto e_id : vec) {
-                        pg.addPort(e_id.first, vport_map[src].getPort(e_id.first.second).getAttribute());
-                        pg.addPort(e_id.second, vport_map[dst].getPort(e_id.second.second).getAttribute());
+                        pg.addPort(e_id.first, vertex_map[src].getPort(e_id.first.second).getAttribute());
+                        pg.addPort(e_id.second, vertex_map[dst].getPort(e_id.second.second).getAttribute());
                         Edge<V,P,E> edge = this->getEdge(e_id);
                         pg.addEdge(edge.EdgeId(), edge.getAttribute());
                     }
@@ -1055,8 +1055,8 @@ public:
                 vport_id dst = e.EdgeId().second;
                 if (pred(src, dst,e.getAttribute())) {
                     //add edge
-                    pg.addVport(src, vport_map[src.first].getAttribute(),vport_map[src.first].getPorts()[src.second].getAttribute());
-                    pg.addVport(dst, vport_map[dst.first].getAttribute(),vport_map[dst.first].getPorts()[dst.second].getAttribute());
+                    pg.addVport(src, vertex_map[src.first].getAttribute(),vertex_map[src.first].getPorts()[src.second].getAttribute());
+                    pg.addVport(dst, vertex_map[dst.first].getAttribute(),vertex_map[dst.first].getPorts()[dst.second].getAttribute());
                     pg.addEdge(e.EdgeId(),e.getAttribute());
                 }
             }
@@ -1283,7 +1283,7 @@ protected:
 public:
     /* returns true if the graph has no vertices */
     bool Empty() {
-        return vport_map.empty();
+        return vertex_map.empty();
     }
 
     /// vport version for finding Clique
@@ -1305,7 +1305,7 @@ public:
         findClique(candidates,res,k);
         PortGraph<V,P,E> pg = PortGraph<V,P,E>();
         for (auto id : res) {
-            pg.addVport(id,vport_map[id.first].getAttribute(),vport_map[id.first].getPort(id.second).getAttribute());
+            pg.addVport(id,vertex_map[id.first].getAttribute(),vertex_map[id.first].getPort(id.second).getAttribute());
         }
         // create new graph
         for (int i = 0; i < res.size()-1;i++)
@@ -1329,7 +1329,7 @@ public:
         assert(k>=2);
         vector<int> res;
         vector<int> candidates;
-        for (auto it : vport_map){
+        for (auto it : vertex_map){
             if (it.second.outGoingEdges() >= k-1)
                 candidates.push_back(it.first);
         }
@@ -1337,9 +1337,9 @@ public:
         // check -
         PortGraph<V,P,E> pg;
         for (auto vertex_id : res){
-            for (auto it : vport_map[vertex_id].getPorts()) {
+            for (auto it : vertex_map[vertex_id].getPorts()) {
                 vport_id id = vport_id(vertex_id,it.first);
-                pg.addVport(id,vport_map[vertex_id].getAttribute(),it.second.getAttribute());
+                pg.addVport(id,vertex_map[vertex_id].getAttribute(),it.second.getAttribute());
             }
         }
         return res;
@@ -1359,10 +1359,10 @@ public:
         // vertex - check
         for (int vertex_id : that.getVertices()) {
             // vertex id
-            if(vport_map[vertex_id] == vport_map.end())
+            if(vertex_map[vertex_id] == vertex_map.end())
                 return false;
             // vertex attribute
-            if(vertex_attr_check && that.getVertexAttr(vertex_id) != vport_map[vertex_id].getAttribute())
+            if(vertex_attr_check && that.getVertexAttr(vertex_id) != vertex_map[vertex_id].getAttribute())
                 return false;
         }
 
@@ -1414,8 +1414,8 @@ public:
         vport_id dst = id.second;
         if(isNeighbers(src.first,dst.first))
             return;
-        vport_map[src.first].decOutgoingEdges();
-        vport_map[dst.first].decIngoingEdges();
+        vertex_map[src.first].decOutgoingEdges();
+        vertex_map[dst.first].decIngoingEdges();
         vertex_neighbors[src.first].erase(dst.first);
         reverse_vertex_neighbors[dst.first].erase(src.first);
     }
@@ -1425,9 +1425,9 @@ public:
        in 'vport id.first' vertex and reomve each directed edge from or to 'vport id' port
     */
     void removePort(vport_id id) {
-        if(vport_map.find(id.first) == vport_map.end())
+        if(vertex_map.find(id.first) == vertex_map.end())
             return;
-        vport_map[id.first].removePort(id.second);
+        vertex_map[id.first].removePort(id.second);
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport>& adj_list = AdjacencyList();
         for(auto it1 = adj_list.begin(); it1 != adj_list.end() ; it1++){
             vport_id this_vport = it1.first;
@@ -1442,22 +1442,22 @@ public:
     }
 
     /* reomve the vertex with the id 'vertex id' if present Else error
-       first of all remove the vertex 'id' form the "vport_map"
+       first of all remove the vertex 'id' form the "vertex_map"
        and use removePort func to remove each port 'in' this vertex and thus including
        the removal of all out\in going edges from\to 'this' vertex
     */
     void removeVertex(int id) {
-        if(vport_map.find(id) == vport_map.end())
+        if(vertex_map.find(id) == vertex_map.end())
             return;
-        for(auto p :vport_map[id].getPorts()){
+        for(auto p :vertex_map[id].getPorts()){
             removePort(vport_id(id,p.getPortId()));
         }
-        vport_map.erase(id);
+        vertex_map.erase(id);
     }
 
     /* return the number of ports in 'id' vertex if present Else error */
     int getVertexPortNum(int id) {
-        return vport_map[id].getPorts().size();
+        return vertex_map[id].getPorts().size();
     }
 
     /* return Port Graph without any vertices/vports/edges that appears in org_pg */
