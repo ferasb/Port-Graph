@@ -11,9 +11,9 @@
 #include <sstream>
 #include <iterator> // For std::forward_iterator_tag
 #include <cstddef>  // For std::ptrdiff_t
-#include <assert.h> // For assert
+#include <cassert> // For assert
 #include <algorithm> // For sort
-#include <float.h>  // For DBL_MAX
+#include <cfloat>  // For DBL_MAX
 #include <queue>   // For priority_queue
 #include <limits>  // For numeric_limits<int>::max()
 using namespace std;
@@ -43,30 +43,27 @@ typedef double (*WeightFunction)(edge_id);
 typedef int (*CapacityFunction)(edge_id);
 
 //For Vport DFS/BFS Iterators
-class PGVportIterator{
-    const vport_id END_VPORT = vport_id(-1,-1);
+class PGVportIterator {
+
 public:
+    const vport_id END_VPORT = vport_id(-1,-1);
     vport_id current;
     PGVportIterator()= default;
-    PGVportIterator(vport_id src){
-        current = src;
-    }
-    vport_id operator*()const {
+    explicit PGVportIterator(vport_id src): current(src) {}
+    virtual vport_id operator*()const {
         return current;
     }
 
 };
 
 //For Vertex DFS/BFS Iterators
-class PGVertexIterator{
-    const int END_VERTEX = -1;
+class PGVertexIterator {
 public:
+    const int END_VERTEX = -1;
     int current;
     PGVertexIterator()= default;
-    PGVertexIterator(int src){
-        current = src;
-    }
-    int operator*()const {
+    explicit PGVertexIterator(int src) : current(src) {}
+    virtual int operator*()const {
         return current;
     }
 
