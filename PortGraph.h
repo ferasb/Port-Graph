@@ -610,7 +610,7 @@ public:
                     vport_order.push_back(neighbor);
             }
         }
-        return vport_order;
+        return vport_order.size() == vertex_map.size() ? vport_order : vector<vport_id>();
     }
 
 /********** Min Spanning Tree **********/
@@ -1262,7 +1262,9 @@ public:
             if(adj_list[id].size() >= k-1)
                 candidates.push_back(id);
         }
-        findClique(candidates,res,k);
+        if(!findClique(candidates,res,k)){
+          return PortGraph<V,P,E>();
+        }
         PortGraph<V,P,E> pg = PortGraph<V,P,E>();
         for (auto id : res) {
             pg.addVport(id,vertex_map[id.first].getAttribute(),vertex_map[id.first].getPort(id.second).getAttribute());
@@ -1290,10 +1292,12 @@ public:
         vector<int> res;
         vector<int> candidates;
         for (auto it : vertex_map){
-            if (it.second.outGoingEdges() >= k-1)
+            if (it.second.outGoingEdges() >= k-1 && it.second.inGoingEdges() >= k-1)
                 candidates.push_back(it.first);
         }
-        findClique(candidates,res,k);
+        if(!findClique(candidates,res,k)){
+          return vector<int>();
+        }
         // check -
         PortGraph<V,P,E> pg;
         for (auto vertex_id : res){
