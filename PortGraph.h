@@ -2,8 +2,8 @@
 // Created by Mario Barbara and Feras Bisharat
 //
 
-#ifndef PORJECT_OFF_PORTGRAPH_H
-#define PORJECT_OFF_PORTGRAPH_H
+#ifndef PROJECT_OFF_PORTGRAPH_H
+#define PROJECT_OFF_PORTGRAPH_H
 
 #include "Utilities.h"
 using namespace std;
@@ -1469,7 +1469,7 @@ protected:
     }
 public:
 
-    explicit DFSIterator(vport_id id): current(id) {}
+    explicit DFSIterator(vport_id id): PGVportIterator(id) {}
 
     DFSIterator(PortGraph<V,P,E>* _pg,vport_id src) {
         this->pg = _pg;
@@ -1549,7 +1549,7 @@ protected:
     }
 public:
 
-    explicit DFSVertexIterator(int id) : current(id) {}
+    explicit DFSVertexIterator(int id) : PGVertexIterator(id) {}
 
     DFSVertexIterator(PortGraph<V,P,E>* _pg, int src) {
         this->pg = _pg;
@@ -1630,7 +1630,7 @@ protected:
     }
 public:
 
-    explicit BFSIterator(vport_id id) : current(id) {}
+    explicit BFSIterator(vport_id id) : PGVportIterator(id) {}
 
     ~BFSIterator(){}
 
@@ -1743,7 +1743,7 @@ protected:
 
 public:
 
-    explicit BFSVertexIterator(int id) : current(id) {}
+    explicit BFSVertexIterator(int id) : PGVertexIterator(id) {}
 
     ~BFSVertexIterator(){}
 
