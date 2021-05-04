@@ -1424,11 +1424,11 @@ public:
         return vertex_map[id].getPorts().size();
     }
 
-    /* return Port Graph without any vertices/vports/edges that appears in org_pg */
-    PortGraph<V,P,E> diff(PortGraph<V,P,E>& org_pg) {
+    /* return Port Graph without any vertices/vports/edges that appears in other_pg */
+    PortGraph<V,P,E> diff(PortGraph<V,P,E>& other_pg) {
         PortGraph<V,P,E> diff_pg = *this;
         map<vport_id, set<Edge<V, P, E>, cmpEdge<V,P,E>>, cmpVport> adj_list = diff_pg.getAdjList();
-        for(auto edge_set : org_pg.getAdjList())
+        for(auto edge_set : other_pg.getAdjList())
             for(auto edge : edge_set)
                 diff_pg.removeEdge(edge.EdgeId());
 
