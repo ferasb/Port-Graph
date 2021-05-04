@@ -19,5 +19,7 @@
  7. ShortestPathWeight: Calculates the shortest path weight between two vports according to a weight function.
  8. maxFlow: Calculates the max flow in a network between two vports according to a capacity function.
  9. findVportClique/findVertexClique: Tries to find a clique of a given size in the Port Graph.
- 10. isSubGraph: checks if the PortGraph is a sub-portGraph of another PortGraph.
- 11. BFS/DFS iterators.
+ 10. isSubGraph: Checks if the PortGraph is a sub-portGraph of another PortGraph.
+ 11. inducedGraph: Filters graph by vertices/edges/vports.
+ 12. diff: Finds the difference between two Port Graphs of the same type (same template parameters).
+ 13. BFS/DFS iterators.
