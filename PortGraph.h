@@ -391,7 +391,7 @@ private:
     map<vport_id, set<vport_id>> adjacency_list_undirected;
 
     // flag for the reverse Graph
-    bool is_reversed ;
+    bool is_reversed;
 
     // maps vport_id (vertix and port) to its vport
     // vertex id -> vertex
@@ -589,7 +589,7 @@ public:
             set<Edge<V, P, E>,cmpEdge<V,P,E>> edge_set = (*it).second;
             vport_id id = (*it).first;
             for(auto edge : edge_set) {
-                vport_indegree[edge.EdgeId().second]++ ;
+                vport_indegree[edge.EdgeId().second]++;
             }
         }
 
